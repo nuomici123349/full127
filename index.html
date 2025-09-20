@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interactive Mobile Desktop</title>
+    
+    <!-- 默认字体链接 -->
+    <div id="font-link-container">
+        <link rel="preload" as="style" crossorigin
+            href="https://fontsapi.zeoseven.com/309/main/result.css"
+            onload="this.rel='stylesheet'"
+            onerror="this.href='httpsapi-storage.zeoseven.com/309/main/result.css'" />
+        <noscript>
+            <link rel="stylesheet" href="https://fontsapi.zeoseven.com/309/main/result.css" />
+        </noscript>
+    </div>
+    <!-- 动态字体样式注入点 -->
+    <style id="dynamic-font-style"></style>
+
+    <style>
+        :root {
+            --morandi-apple-green: #d4e6d6;
+            --screen-bg: #f7f9f7;
+            --text-color: #5a6e60;
+            --text-light: #a2b0a5;
+            --placeholder-bg: #e8f0e9;
+            --dock-bg: rgba(232, 240, 233, 0.85);
+            --font-main: "KingHwaOldSong", 'Songti SC', 'STSong', 'SimSun', serif;
+            --battery-low: #e74c3c;
+            --battery-charging: #34c759;
+            --global-font-size: 16px; 
+            --global-font-weight: 400;
+        }
+
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--placeholder-bg);
+            font-family: var(--font-main);
+            color: var(--text-color);
+            overflow: hidden;
+            font-size: var(--global-font-size);
+            font-weight: var(--global-font-weight);
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
+            transition: background-image 0.3s ease-in-out, background-color 0.3s ease-in-out;
+        }
+
+        .app-container { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .status-bar { padding: 15px 25px 10px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; box-sizing: border-box; position: absolute; top: 0; left: 0; right: 0; z-index: 200; }
+        .status-bar-time { font-weight: 600; font-size: 15px; }
+        .status-bar-right-icons { display: flex; align-items: flex-end; gap: 7px; position: relative; top: 1px; }
+        .status-bar-right-icons svg { height: 13px; width: auto; }
+        .status-bar-svg-icon path { fill: var(--text-color); }
+        .battery-container { display: flex; align-items: center; height: 13px; position: relative; bottom: -0.5px; }
+        .battery-frame { stroke: var(--text-color); stroke-width: 1px; fill: none; }
+        .battery-terminal, .battery-fill { fill: var(--text-color); }
+        .battery-low .battery-fill { fill: var(--battery-low); }
+        .battery-low .battery-frame, .battery-low .battery-terminal { stroke: var(--battery-low); fill: var(--battery-low); }
+        #battery-charging-bolt { display: none; }
+        .battery-charging #battery-charging-bolt { display: block; }
+        .battery-charging .battery-bolt-path { fill: #fff; }
+        .battery-charging .battery-fill { fill: var(--battery-charging); display: block !important; }
+
+        .page { display: none; flex-direction: column; width: 100%; height: 100%; flex-grow: 1; overflow: hidden; }
+        .page.active { display: flex; }
+
+        .main-content { flex-grow: 1; padding: 0 20px; display: flex; flex-direction: column; overflow-y: auto; }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        .profile-card { position: relative; margin-top: 60px; flex-shrink: 0; background-color: #fff; border-radius: 20px; box-shadow: 0 8px 25px rgba(90, 110, 96, 0.1); }
+        .profile-banner { height: 120px; background-color: var(--placeholder-bg); border-radius: 20px 20px 0 0; cursor: pointer; background-size: cover; background-position: center; }
+        
+        .avatar-frame { width: 85px; height: 85px; position: absolute; top: 120px; left: 50%; transform: translate(-50%, -55%); z-index: 10; display: flex; justify-content: center; align-items: center; }
+        
+        .avatar { 
+            width: 75px; height: 75px; 
+            background-color: #fff; 
+            border-radius: 50%; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .avatar:hover { transform: scale(1.05); }
+        
+        .avatar.avatar-framed {
+            width: 65px;
+            height: 65px;
+        }
+        
+        #avatar-frame-overlay { position: absolute; width: 100%; height: 100%; top: 0; left: 0; border-radius: 50%; pointer-events: none; transition: background-image 0.3s, box-shadow 0.3s; background-size: contain; background-repeat: no-repeat; background-position: center; }
+        
+        .avatar-frame-preview { position: relative; width: 85px; height: 85px; margin: 20px auto; display: flex; justify-content: center; align-items: center; }
+        #preview-avatar { position: relative; } 
+        #preview-avatar-frame { position: absolute; width: 100%; height: 100%; top: 0; left: 0; border-radius: 50%; background-size: contain; background-repeat: no-repeat; background-position: center; }
+
+        .profile-info { text-align: center; padding: 50px 15px 20px; }
+        .profile-info .editable { cursor: pointer; }
+        .profile-info .editable:hover { opacity: 0.7; }
+        .profile-info .nickname, .profile-info .username, .profile-info .bio, .profile-info .location span { min-height: 1em; }
+        .profile-info .nickname { font-size: 1.125em; font-weight: bold; margin: 0 0 4px; }
+        .profile-info .username { font-size: 0.8125em; color: var(--text-light); margin: 0; }
+        .profile-info .bio { font-size: 0.8125em; margin: 12px 0; letter-spacing: 1px; }
+        .profile-info .location { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75em; color: var(--text-light); background-color: var(--screen-bg); padding: 4px 10px; border-radius: 20px; margin-top: 5px; }
+        .profile-info .location svg { width: 12px; height: 12px; flex-shrink: 0; }
+        .middle-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; min-height: 150px; }
+        .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: stretch; height: 130px; width: 100%; flex-shrink: 0; }
+        .widget-card-vertical { background-color: #fff; border-radius: 18px; cursor: pointer; background-size: cover; background-position: center; }
+        .app-grid-right { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 15px; }
+        .app-icon { text-decoration: none; color: var(--text-color); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transition: transform 0.2s ease; }
+        .app-icon:hover { transform: scale(1.08); }
+        .icon-placeholder { width: 75%; padding-top: 75%; position: relative; background-color: #fff; border-radius: 14px; background-size: cover; background-position: center; }
+        .app-icon span { font-size: 0.6875em; }
+        .dock { padding: 15px 20px; margin: 15px; background-color: var(--dock-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 25px; display: flex; justify-content: space-around; align-items: center; flex-shrink: 0; transition: background-color 0.3s ease; }
+        .dock-icon-placeholder { width: 50px; height: 50px; background-color: white; border-radius: 12px; cursor: pointer; background-size: cover; background-position: center; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.visible { display: flex; }
+        .modal-content { background: white; padding: 20px; border-radius: 15px; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .modal-content h3 { margin-top: 0; color: var(--text-color); }
+        .modal-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: var(--font-main); margin-bottom: 15px; transition: border-color 0.2s, box-shadow 0.2s; }
+        .modal-input:focus { outline: none; border-color: var(--placeholder-bg); box-shadow: 0 0 5px var(--placeholder-bg); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-button { padding: 8px 15px; border: none; border-radius: 8px; cursor: pointer; font-family: var(--font-main); }
+        .modal-button.save { background-color: var(--text-color); color: white; }
+        .modal-button.cancel { background-color: #eee; }
+
+        .app-header { padding: 10px 20px; display: flex; align-items: center; position: relative; text-align: center; flex-shrink: 0; margin-top: 45px; }
+        .back-button { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; padding: 5px; }
+        .back-button svg { width: 22px; height: 22px; }
+        .app-title { flex-grow: 1; font-size: 1.125em; font-weight: bold; }
+        .app-content-area { flex-grow: 1; padding: 15px 20px; overflow-y: auto; }
+        .app-content-area::-webkit-scrollbar { display: none; }
+
+        .setting-card { background-color: #fff; border-radius: 15px; padding: 18px 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(90, 110, 96, 0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .setting-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90, 110, 96, 0.12); }
+        .setting-card span { font-size: 0.9375em; }
+        .setting-card .arrow { color: var(--text-light); font-size: 1.125em; }
+        
+        .settings-section { background-color: #fff; border-radius: 15px; padding: 15px 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(90, 110, 96, 0.08); }
+        .settings-section h3 { font-size: 1em; margin: 0 0 15px 0; }
+        .control-group { margin-bottom: 15px; }
+        .control-group:last-child { margin-bottom: 5px; }
+        .control-group label { display: block; font-size: 0.875em; margin-bottom: 8px; color: var(--text-light); }
+        .btn { display: block; width: 100%; padding: 10px; background-color: var(--placeholder-bg); border: none; border-radius: 8px; font-family: var(--font-main); color: var(--text-color); font-size: 0.9375em; cursor: pointer; text-align: center; }
+        .input-field, .textarea-field { width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; box-sizing: border-box; font-family: var(--font-main); font-size: 0.875em; background-color: #fdfdfd; }
+        .textarea-field { resize: vertical; min-height: 150px; white-space: pre; overflow-wrap: normal; overflow-x: scroll; }
+        .slider-container { display: flex; align-items: center; gap: 15px; }
+        .slider-container span { font-size: 0.875em; color: var(--text-light); }
+        input[type="range"] { flex-grow: 1; -webkit-appearance: none; appearance: none; width: 100%; height: 5px; background: var(--placeholder-bg); border-radius: 5px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--text-color); border-radius: 50%; cursor: pointer; }
+        input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: var(--text-color); border-radius: 50%; cursor: pointer; }
+        .preview-box { background-color: var(--placeholder-bg); padding: 20px; border-radius: 10px; text-align: center; }
+        .preview-box p { margin: 0; }
+        #font-preview { font-size: 1.5em; font-weight: bold; margin-bottom: 10px !important; }
+        #font-details { font-size: 0.8em; color: var(--text-light); }
+        
+        #wallpaper-preview { width: 140px; height: 280px; margin: 0 auto; background-color: var(--placeholder-bg); border-radius: 15px; border: 3px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background-size: cover; background-repeat: no-repeat; background-position: center; transition: background-image 0.3s ease-in-out; display: flex; justify-content: center; align-items: center; color: var(--text-light); font-size: 0.9em; }
+        .settings-section label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.875em; margin-bottom: 10px; }
+        .settings-section label input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        
+        .icon-setting-group { margin-bottom: 25px; }
+        .icon-setting-group h4 { font-size: 0.9em; margin: 0 0 10px; color: var(--text-color); border-bottom: 1px solid var(--placeholder-bg); padding-bottom: 8px; }
+        .icon-setting-group .control-group { display: flex; gap: 10px; }
+        .icon-setting-group .control-group .btn { width: auto; flex-grow: 1; }
+        .icon-setting-group .control-group .input-field { width: auto; flex-grow: 2; }
+        
+        .btn-restore { background-color: #e8e8e8; margin-top: 10px; }
+
+        #theme-color-preview { width: 80px; height: 80px; border-radius: 50%; background-color: var(--placeholder-bg); border: 4px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: background-color 0.3s; margin: 0 auto 20px; }
+        #theme-color-hex { font-family: monospace; text-transform: uppercase; text-align: center; }
+
+        .saved-font-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background-color: var(--placeholder-bg); border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: background-color 0.2s, transform 0.2s; font-size: 0.9375em; }
+        .saved-font-item:hover { background-color: #e0e8e1; transform: scale(1.02); }
+        .saved-font-name { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
+        .delete-font-btn { background: none; border: none; cursor: pointer; font-size: 1.5em; color: var(--text-light); padding: 0 5px; line-height: 1; transition: color 0.2s; }
+        .delete-font-btn:hover { color: var(--battery-low); }
+        #saved-fonts-toggle .arrow { transition: transform 0.3s ease; display: inline-block; }
+        #saved-fonts-toggle.expanded .arrow { transform: rotate(180deg); }
+
+        /* --- START: Styles from API Config --- */
+        #api-config-page { background-color: var(--screen-bg); }
+        #api-config-page .app-header {
+            padding: 10px 20px;
+            margin-top: 45px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        #api-config-page .app-title { flex-grow: 1; text-align: center; }
+        
+        #api-config-page .page-container { flex-grow: 1; overflow-y: auto; padding: 15px 20px; }
+        #api-config-page .page-container::-webkit-scrollbar { display: none; }
+        #api-config-page .page-view { display: none; }
+        #api-config-page .page-view.active { display: block; }
+        
+        #api-config-page .btn { padding: 12px; border-radius: 10px; transition: background-color 0.2s, opacity 0.2s; }
+        #api-config-page .btn:hover { background-color: #dce6dd; }
+        #api-config-page .btn:disabled { opacity: 0.6; cursor: not-allowed; background-color: var(--placeholder-bg); }
+        
+        #api-config-page .input-field, #api-config-page .textarea-field, #api-config-page .select-field { width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 10px; box-sizing: border-box; font-family: var(--font-main); font-size: 0.9em; background-color: #fdfdfd; transition: border-color 0.2s, box-shadow 0.2s; }
+        #api-config-page .input-field:focus, #api-config-page .textarea-field:focus, #api-config-page .select-field:focus { outline: none; border-color: var(--text-color); box-shadow: 0 0 8px rgba(90, 110, 96, 0.15); }
+        
+        #api-config-page .textarea-field { min-height: 100px; }
+        #api-config-page .input-with-button { display: flex; align-items: center; gap: 10px; }
+        #api-config-page .input-with-button .input-field { flex-grow: 1; }
+        #api-config-page .input-with-button .btn-icon { padding: 10px; line-height: 0; background-color: var(--placeholder-bg); border-radius: 10px; cursor: pointer; border: none; }
+        #api-config-page .input-with-button .btn-icon svg { width: 20px; height: 20px; fill: var(--text-color); }
+        
+        #connection-status { margin-top: 15px; text-align: center; font-size: 0.9em; min-height: 1.2em; transition: color 0.3s; }
+        #connection-status.success { color: var(--battery-charging); }
+        #connection-status.error { color: var(--battery-low); }
+
+        #api-config-page .app-footer { flex-shrink: 0; display: flex; justify-content: space-around; padding: 10px 0; background-color: #fff; box-shadow: 0 -5px 20px rgba(90, 110, 96, 0.08); border-top: 1px solid #f0f0f0; }
+        #api-config-page .nav-btn { background: none; border: none; font-family: var(--font-main); font-size: 0.9em; color: var(--text-light); cursor: pointer; padding: 5px 15px; border-radius: 8px; transition: color 0.2s, background-color 0.2s; }
+        #api-config-page .nav-btn.active { color: var(--text-color); font-weight: bold; background-color: var(--placeholder-bg); }
+
+        .preset-list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 10px; background-color: #fdfdfd; border-radius: 10px; border: 1px solid #e8f0e9; }
+        .preset-name { font-weight: bold; margin-right: 15px; }
+        .preset-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .preset-actions .btn-sm { padding: 6px 12px; font-size: 0.85em; min-width: 60px; }
+        .btn-delete { background-color: #fbeae8; color: var(--battery-low); }
+
+        .custom-prompt-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .custom-prompt-overlay.visible { display: flex; }
+        .custom-prompt-box { background-color: var(--screen-bg); padding: 25px; border-radius: 15px; width: 80%; max-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.2s; }
+        .custom-prompt-overlay.visible .custom-prompt-box { transform: scale(1); }
+        .custom-prompt-box h3 { margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-color); }
+        .custom-prompt-box .input-field { margin-bottom: 20px; }
+        .custom-prompt-buttons { display: flex; justify-content: flex-end; gap: 10px; }
+        .custom-prompt-buttons .btn { width: auto; padding: 8px 20px; }
+        .custom-prompt-buttons .btn-primary { background-color: var(--text-color); color: white; }
+        /* --- END: Styles from API Config --- */
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header class="status-bar">
+            <div class="status-bar-time" id="current-time"></div>
+            <div class="status-bar-right-icons">
+                <svg class="status-bar-svg-icon" width="20" height="13" viewBox="-1 -1 22 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M18.8186 0.749817H17.6519C17.0076 0.749817 16.4852 1.2535 16.4852 1.87482V11.6248C16.4852 12.2461 17.0076 12.7498 17.6519 12.7498H18.8186C19.4629 12.7498 19.9852 12.2461 19.9852 11.6248V1.87482C19.9852 1.2535 19.4629 0.749817 18.8186 0.749817ZM12.1617 3.37495H13.3284C13.9727 3.37495 14.495 3.87863 14.495 4.49995V11.625C14.495 12.2463 13.9727 12.75 13.3284 12.75H12.1617C11.5174 12.75 10.995 12.2463 10.995 11.625V4.49995C10.995 3.87863 11.5174 3.37495 12.1617 3.37495ZM7.83818 5.99974H6.67151C6.02718 5.99974 5.50484 6.50342 5.50484 7.12474V11.6247C5.50484 12.2461 6.02718 12.7497 6.67151 12.7497H7.83818C8.48251 12.7497 9.00484 12.2461 9.00484 11.6247V7.12474C9.00484 6.50342 8.48251 5.99974 7.83818 5.99974ZM2.34798 8.2497H1.18132C0.536983 8.2497 0.0146484 8.75338 0.0146484 9.3747V11.6247C0.0146484 12.246 0.536983 12.7497 1.18132 12.7497H2.34798C2.99231 12.7497 3.51465 12.246 3.51465 11.6247V9.3747C3.51465 8.75338 2.99231 8.2497 2.34798 8.2497Z"></path></svg>
+                <svg class="status-bar-svg-icon" viewBox="0 0 18 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.00047 2.59599C11.467 2.5961 13.8393 3.56668 15.6269 5.30712C15.7615 5.44149 15.9766 5.43979 16.1092 5.30332L17.396 3.9734C17.4631 3.90418 17.5006 3.81042 17.5 3.71287C17.4994 3.61531 17.4609 3.52201 17.393 3.4536C12.7011 -1.1512 5.29908 -1.1512 0.607163 3.4536C0.539197 3.52196 0.500634 3.61523 0.500008 3.71279C0.499381 3.81034 0.536742 3.90413 0.603824 3.9734L1.89096 5.30332C2.02346 5.44 2.23878 5.4417 2.37331 5.30712C4.16116 3.56656 6.53367 2.59598 9.00047 2.59599ZM9.00045 6.92266C10.3557 6.92257 11.6625 7.43843 12.6671 8.36999C12.8029 8.5022 13.017 8.49933 13.1494 8.36353L14.4347 7.03361C14.5024 6.96386 14.5399 6.86922 14.539 6.77089C14.538 6.67255 14.4986 6.57872 14.4295 6.51039C11.3704 3.59629 6.63306 3.59629 3.57399 6.51039C3.50489 6.57872 3.46546 6.6726 3.46455 6.77097C3.46365 6.86933 3.50133 6.96396 3.56916 7.03361L4.85407 8.36353C4.98652 8.49933 5.20056 8.5022 5.33643 8.36999C6.34032 7.43905 7.64613 6.92323 9.00045 6.92266ZM11.5751 9.83398C11.5771 9.93259 11.5392 10.0277 11.4705 10.0968L9.24719 12.3945C9.18201 12.462 9.09316 12.5 9.00045 12.5C8.90773 12.5 8.81888 12.462 8.7537 12.3945L6.53006 10.0968C6.46137 10.0276 6.42358 9.93251 6.42562 9.8339C6.42765 9.73529 6.46933 9.64191 6.54082 9.57581C7.96068 8.34595 10.0402 8.34595 11.4601 9.57581C11.5315 9.64196 11.5731 9.73537 11.5751 9.83398Z"></path></svg>
+                <div class="battery-container" id="battery-container">
+                    <svg width="28" height="13" viewBox="0 0 28 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect class="battery-frame" opacity="0.4" x="1.17004" y="0.5" width="24" height="12" rx="3.5"></rect>
+                        <path class="battery-terminal" opacity="0.5" d="M26.67 4.5V8.5C27.476 8.16122 28 7.37313 28 6.5C28 5.62687 27.476 4.83878 26.67 4.5Z"></path>
+                        <rect class="battery-fill" id="battery-fill" x="2.17004" y="2" width="22" height="9" rx="2"></rect>
+                        <g id="battery-charging-bolt"><path d="M512 393.216 229.376 512 430.08 512 471.04 630.784 753.664 512 552.96 512Z" class="battery-bolt-path" transform="translate(13.5, 6.5) scale(0.022) translate(-491.5, -512)"/></g>
+                    </svg>
+                </div>
+            </div>
+        </header>
+
+        <!-- 桌面页面 -->
+        <div id="desktop-page" class="page active">
+            <main class="main-content">
+                <div class="profile-card">
+                    <div class="profile-banner" id="profile-banner"></div>
+                    <input type="file" id="banner-upload" accept="image/*" style="display: none;">
+                    <div class="avatar-frame">
+                        <div class="avatar" id="avatar-container"></div>
+                        <div id="avatar-frame-overlay"></div>
+                    </div>
+                    <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+                    <div class="profile-info">
+                        <h1 class="nickname editable">点击编辑昵称</h1>
+                        <p class="username editable">点击编辑ID</p>
+                        <p class="bio editable">点击编辑签名</p>
+                        <div class="location">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
+                            <span class="editable">点击编辑地点</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="middle-container">
+                    <section class="main-layout">
+                        <div class="widget-card-vertical" id="widget-left"></div>
+                        <input type="file" id="widget-left-upload" accept="image/*" style="display: none;">
+                        <div class="app-grid-right">
+                            <a href="#" class="app-icon"><div class="icon-placeholder" id="app-icon-1"></div><span>App 1</span></a>
+                            <a href="#" class="app-icon"><div class="icon-placeholder" id="app-icon-2"></div><span>App 2</span></a>
+                            <a href="#" class="app-icon"><div class="icon-placeholder" id="app-icon-3"></div><span>App 3</span></a>
+                            <a href="#" class="app-icon"><div class="icon-placeholder" id="app-icon-4"></div><span>App 4</span></a>
+                        </div>
+                    </section>
+                </div>
+            </main>
+            <footer class="dock">
+                <a href="javascript:void(0);" class="dock-icon" id="beautify-app-icon"><div class="dock-icon-placeholder" id="dock-icon-1"></div></a>
+                <a href="javascript:void(0);" class="dock-icon" id="api-config-app-icon"><div class="dock-icon-placeholder" id="dock-icon-2"></div></a>
+                <a href="#" class="dock-icon"><div class="dock-icon-placeholder" id="dock-icon-3"></div></a>
+                <a href="#" class="dock-icon"><div class="dock-icon-placeholder" id="dock-icon-4"></div></a>
+            </footer>
+        </div>
+
+        <!-- 美化页面 -->
+        <div id="beautify-page" class="page">
+            <header class="app-header">
+                <div class="back-button" id="beautify-back-button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></div>
+                <h2 class="app-title">美化</h2>
+            </header>
+            <div class="app-content-area">
+                <div class="setting-card" id="font-settings-card"><span>字体设置</span><span class="arrow">></span></div>
+                <div class="setting-card" id="wallpaper-settings-card"><span>自定义壁纸/锁屏</span><span class="arrow">></span></div>
+                <div class="setting-card" id="theme-settings-card"><span>主题色设置</span><span class="arrow">></span></div>
+                <div class="setting-card" id="avatar-frame-settings-card"><span>头像框设置</span><span class="arrow">></span></div>
+                <div class="setting-card" id="icon-settings-card"><span>图标设置</span><span class="arrow">></span></div>
+                <div class="setting-card" id="dock-settings-card"><span>底部栏</span><span class="arrow">></span></div>
+            </div>
+        </div>
+        
+        <!-- 字体设置页面 -->
+        <div id="font-settings-page" class="page">
+            <header class="app-header">
+                <div class="back-button" id="font-settings-back-button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></div>
+                <h2 class="app-title">字体设置</h2>
+            </header>
+            <div class="app-content-area">
+                <div class="settings-section">
+                    <h3>字体种类</h3>
+                    <div class="control-group">
+                        <button class="btn" id="upload-font-btn">上传本地字体文件</button>
+                        <input type="file" id="font-file-input" accept=".ttf,.otf,.woff,.woff2" style="display:none;">
+                    </div>
+                    <div class="control-group">
+                        <label for="font-css-input">导入CSS代码</label>
+                        <textarea id="font-css-input" class="textarea-field"></textarea>
+                    </div>
+                    <div class="control-group">
+                        <label for="font-url-input">输入字体文件URL</label>
+                        <input type="text" id="font-url-input" class="input-field" placeholder="https://.../font.ttf">
+                    </div>
+                </div>
+                <!-- 已保存列表 -->
+                <div class="settings-section">
+                    <h3 id="saved-fonts-toggle" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                        <span>已保存列表</span>
+                        <span class="arrow">▼</span>
+                    </h3>
+                    <div id="saved-fonts-list-container" style="display: none; margin-top: 10px;">
+                        <!-- Saved font items will be injected here by JS -->
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>字体大小/粗细</h3>
+                    <div class="control-group">
+                        <label>大小</label>
+                        <div class="slider-container">
+                            <span>A</span>
+                            <input type="range" id="font-size-slider" min="12" max="20" step="1" value="16">
+                            <span style="font-size: 1.25em;">A</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>粗细</label>
+                        <div class="slider-container">
+                            <span>细</span>
+                            <input type="range" id="font-weight-slider" min="100" max="900" step="100" value="400">
+                            <span style="font-weight: bold;">粗</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>实时预览</h3>
+                    <div class="preview-box">
+                        <p id="font-preview">你好世界 Hello World</p>
+                        <p id="font-details">京华老宋体 / 16px / 400</p>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <button class="btn btn-restore" id="restore-font-defaults">恢复默认</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 壁纸设置页面 -->
+        <div id="wallpaper-settings-page" class="page">
+            <header class="app-header">
+                <div class="back-button" id="wallpaper-settings-back-button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></div>
+                <h2 class="app-title">壁纸设置</h2>
+            </header>
+            <div class="app-content-area">
+                <div class="settings-section">
+                    <h3>图片来源</h3>
+                    <div class="control-group">
+                        <button class="btn" id="upload-wallpaper-btn">上传本地图片</button>
+                        <input type="file" id="wallpaper-file-input" accept="image/*" style="display:none;">
+                    </div>
+                    <div class="control-group">
+                        <label for="wallpaper-url-input">输入图片URL</label>
+                        <input type="text" id="wallpaper-url-input" class="input-field" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <label>
+                        <input type="checkbox" id="enable-wallpaper-preview"> 启用实时预览
+                    </label>
+                    <div id="wallpaper-preview-section" style="display:none;">
+                        <div id="wallpaper-preview"></div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <button class="btn btn-restore" id="restore-wallpaper-defaults">恢复默认</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 图标设置页面 -->
+        <div id="icon-settings-page" class="page">
+            <header class="app-header">
+                <div class="back-button" id="icon-settings-back-button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></div>
+                <h2 class="app-title">图标设置</h2>
+            </header>
+            <div class="app-content-area">
+                <div class="settings-section">
+                    <div id="app-icon-controls"></div>
+                </div>
+                <div class="settings-section">
+                    <button class="btn btn-restore" id="restore-icon-defaults">恢复默认</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主题色设置页面 -->
+        <div id="theme-settings-page" class="page">
+            <header class="app-header">
+                <div class="back-button" id="theme-settings-back-button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></div>
+                <h2 class="app-title">主题色设置</h2>
+            </header>
+            <div class="app-content-area">
+                <div class="settings-section">
+                    <h3>实时预览</h3>
+                    <div id="theme-color-preview"></div>
+                </div>
+                <div class="settings-section">
+                    <h3>输入色号 (HEX)</h3>
+                    <div class="control-group">
+                         <input type="text" id="theme-color-hex" class="input-field" value="#e8f0e9">
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <button class="btn btn-restore" id="restore-theme-defaults">恢复默认</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部栏设置页面 -->
+        <div id="dock-settings-page" class="page">
+            <header class="app-header">
+                <div class="back-button" id="dock-settings-back-button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></div>
+                <h2 class="app-title">底部栏设置</h2>
+            </header>
+            <div class="app-content-area">
+                <div class="settings-section">
+                    <h3>选项</h3>
+                    <label>
+                        <input type="checkbox" id="dock-white-bg-toggle">
+                        使用纯白/透明底部栏 (不跟随主题色)
+                    </label>
+                </div>
+                <div class="settings-section">
+                    <h3>透明度</h3>
+                    <div class="control-group">
+                        <div class="slider-container">
+                            <span style="font-size: 0.8em;">透明</span>
+                            <input type="range" id="dock-opacity-slider" min="0" max="1" step="0.05" value="0.85">
+                            <span style="font-size: 0.8em;">不透明</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>实时预览</h3>
+                    <div id="dock-preview" style="height: 60px; border-radius: 20px; transition: background-color 0.3s; display: flex; align-items: center; justify-content: space-around; padding: 0 20px; border: 1px solid var(--text-light);">
+                        <div style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.5); border-radius: 10px;"></div>
+                        <div style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.5); border-radius: 10px;"></div>
+                        <div style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.5); border-radius: 10px;"></div>
+                        <div style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.5); border-radius: 10px;"></div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <button class="btn btn-restore" id="restore-dock-defaults">恢复默认</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 头像框设置页面 -->
+        <div id="avatar-frame-settings-page" class="page">
+            <header class="app-header">
+                <div class="back-button" id="avatar-frame-settings-back-button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></div>
+                <h2 class="app-title">头像框设置</h2>
+            </header>
+            <div class="app-content-area">
+                <div class="settings-section">
+                    <h3>选项</h3>
+                    <label>
+                        <input type="checkbox" id="enable-avatar-frame-toggle">
+                        启用头像框
+                    </label>
+                </div>
+                <div class="settings-section">
+                    <h3>自定义头像框</h3>
+                    <div class="control-group">
+                        <button class="btn" id="upload-avatar-frame-btn">上传本地图片 (PNG/GIF)</button>
+                        <input type="file" id="avatar-frame-file-input" accept="image/png,image/gif" style="display:none;">
+                    </div>
+                    <div class="control-group">
+                        <label for="avatar-frame-url-input">或输入图片URL</label>
+                        <input type="text" id="avatar-frame-url-input" class="input-field" placeholder="https://.../frame.gif">
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>位置与大小微调</h3>
+                    <div class="control-group">
+                        <label for="avatar-frame-x-slider">水平位置 (X)</label>
+                        <div class="slider-container">
+                            <span>-</span>
+                            <input type="range" id="avatar-frame-x-slider" min="-20" max="20" value="0" step="1">
+                            <span>+</span>
+                        </div>
+                    </div>
+                     <div class="control-group">
+                        <label for="avatar-frame-y-slider">垂直位置 (Y)</label>
+                        <div class="slider-container">
+                            <span>-</span>
+                            <input type="range" id="avatar-frame-y-slider" min="-20" max="20" value="0" step="1">
+                            <span>+</span>
+                        </div>
+                    </div>
+                     <div class="control-group">
+                        <label for="avatar-frame-scale-slider">缩放大小</label>
+                        <div class="slider-container">
+                            <span>小</span>
+                            <input type="range" id="avatar-frame-scale-slider" min="0.8" max="1.5" value="1" step="0.01">
+                            <span>大</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>实时预览</h3>
+                    <div class="avatar-frame-preview">
+                        <div id="preview-avatar" class="avatar"></div>
+                        <div id="preview-avatar-frame"></div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <button class="btn btn-restore" id="restore-avatar-frame-defaults">恢复默认</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- START: API Config Page -->
+        <div id="api-config-page" class="page">
+            <header class="app-header">
+                <div class="back-button" id="api-config-back-button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></div>
+                <h2 class="app-title" id="app-page-title">API 配置</h2>
+            </header>
+
+            <div class="page-container">
+                <div id="config-page" class="page-view active">
+                    <div class="settings-section">
+                        <div class="control-group">
+                            <label for="api-provider-select">服务商</label>
+                            <select id="api-provider-select" class="select-field">
+                                <option value="openai">OpenAI</option>
+                                <option value="gemini">Gemini</option>
+                                <option value="deepseek">DeepSeek</option>
+                                <option value="claude">Claude</option>
+                                <option value="reverse_proxy">反向代理</option>
+                                <option value="custom">自定义 (OpenAI 格式)</option>
+                                <option value="polling">轮询</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="api-url-input">API URL</label>
+                            <input type="text" id="api-url-input" class="input-field">
+                        </div>
+                        <div class="control-group">
+                            <label for="api-key-input">API Key</label>
+                            <div class="input-with-button">
+                                <input type="password" id="api-key-input" class="input-field">
+                                <textarea id="api-key-textarea" class="textarea-field" style="display: none;" placeholder="每行输入一个 Key"></textarea>
+                                <button id="toggle-api-key-visibility" class="btn-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label for="api-model-select">模型</label>
+                            <select id="api-model-select" class="select-field"></select>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <button class="btn" id="test-connection-btn">连接测试 & 拉取模型</button>
+                        <p id="connection-status"></p>
+                    </div>
+                    <div class="settings-section">
+                        <button class="btn" id="save-api-settings-btn" style="background-color: var(--text-color); color: white;">保存设置</button>
+                        <button class="btn btn-restore" id="restore-api-defaults-btn">恢复默认</button>
+                    </div>
+                </div>
+                <div id="presets-page" class="page-view">
+                    <div id="presets-list-container"></div>
+                </div>
+            </div>
+
+            <footer class="app-footer">
+                <button id="nav-config-btn" class="nav-btn active">配置</button>
+                <button id="nav-presets-btn" class="nav-btn">预设</button>
+            </footer>
+        </div>
+        <!-- END: API Config Page -->
+
+    </div>
+
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-content">
+            <h3 id="modal-title">编辑信息</h3>
+            <textarea id="modal-input" class="modal-input" rows="3"></textarea>
+            <div class="modal-actions">
+                <button class="modal-button cancel" id="modal-cancel">取消</button>
+                <button class="modal-button save" id="modal-save">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- START: API Config Custom Prompt Modal -->
+    <div id="custom-prompt" class="custom-prompt-overlay">
+        <div class="custom-prompt-box">
+            <h3 id="custom-prompt-title">为预设命名</h3>
+            <input type="text" id="custom-prompt-input" class="input-field" placeholder="请输入名称">
+            <div class="custom-prompt-buttons">
+                <button id="custom-prompt-cancel" class="btn">取消</button>
+                <button id="custom-prompt-confirm" class="btn btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+    <!-- END: API Config Custom Prompt Modal -->
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const appContainer = document.querySelector('.app-container');
+            appContainer.style.height = `${window.innerHeight}px`;
+
+            const pages = {
+                desktop: document.getElementById('desktop-page'),
+                beautify: document.getElementById('beautify-page'),
+                fontSettings: document.getElementById('font-settings-page'),
+                wallpaperSettings: document.getElementById('wallpaper-settings-page'),
+                iconSettings: document.getElementById('icon-settings-page'),
+                themeSettings: document.getElementById('theme-settings-page'),
+                dockSettings: document.getElementById('dock-settings-page'),
+                avatarFrameSettings: document.getElementById('avatar-frame-settings-page'),
+                apiConfig: document.getElementById('api-config-page') // <-- Added API Config page
+            };
+
+            const navigation = {
+                toBeautify: document.getElementById('beautify-app-icon'),
+                toApiConfig: document.getElementById('api-config-app-icon'), // <-- Added API Config Icon
+                backFromBeautify: document.getElementById('beautify-back-button'),
+                backFromApiConfig: document.getElementById('api-config-back-button'), // <-- Added API Config back button
+                toFontSettings: document.getElementById('font-settings-card'),
+                backFromFontSettings: document.getElementById('font-settings-back-button'),
+                toWallpaperSettings: document.getElementById('wallpaper-settings-card'),
+                backFromWallpaperSettings: document.getElementById('wallpaper-settings-back-button'),
+                toIconSettings: document.getElementById('icon-settings-card'),
+                backFromIconSettings: document.getElementById('icon-settings-back-button'),
+                toThemeSettings: document.getElementById('theme-settings-card'),
+                backFromThemeSettings: document.getElementById('theme-settings-back-button'),
+                toDockSettings: document.getElementById('dock-settings-card'),
+                backFromDockSettings: document.getElementById('dock-settings-back-button'),
+                toAvatarFrameSettings: document.getElementById('avatar-frame-settings-card'),
+                backFromAvatarFrameSettings: document.getElementById('avatar-frame-settings-back-button')
+            };
+
+            function showPage(pageToShow) {
+                Object.values(pages).forEach(p => p.classList.remove('active'));
+                pageToShow.classList.add('active');
+            }
+
+            navigation.toBeautify.addEventListener('click', () => showPage(pages.beautify));
+            navigation.toApiConfig.addEventListener('click', () => showPage(pages.apiConfig)); // <-- Added navigation
+            navigation.backFromBeautify.addEventListener('click', () => showPage(pages.desktop));
+            navigation.backFromApiConfig.addEventListener('click', () => showPage(pages.desktop)); // <-- Added navigation
+            navigation.toFontSettings.addEventListener('click', () => showPage(pages.fontSettings));
+            navigation.backFromFontSettings.addEventListener('click', () => showPage(pages.beautify));
+            navigation.toWallpaperSettings.addEventListener('click', () => showPage(pages.wallpaperSettings));
+            navigation.backFromWallpaperSettings.addEventListener('click', () => showPage(pages.beautify));
+            navigation.toIconSettings.addEventListener('click', () => showPage(pages.iconSettings));
+            navigation.backFromIconSettings.addEventListener('click', () => showPage(pages.beautify));
+            navigation.toThemeSettings.addEventListener('click', () => showPage(pages.themeSettings));
+            navigation.backFromThemeSettings.addEventListener('click', () => showPage(pages.beautify));
+            navigation.toDockSettings.addEventListener('click', () => showPage(pages.dockSettings));
+            navigation.backFromDockSettings.addEventListener('click', () => showPage(pages.beautify));
+            navigation.toAvatarFrameSettings.addEventListener('click', () => showPage(pages.avatarFrameSettings));
+            navigation.backFromAvatarFrameSettings.addEventListener('click', () => showPage(pages.beautify));
+            
+            let currentAvatarFrameURL = null;
+
+            // --- 字体设置 (IndexedDB + 命名弹窗) ---
+            const fontControls = { cssInput: document.getElementById('font-css-input'), urlInput: document.getElementById('font-url-input'), fileInput: document.getElementById('font-file-input'), sizeSlider: document.getElementById('font-size-slider'), weightSlider: document.getElementById('font-weight-slider'), previewDetails: document.getElementById('font-details'), dynamicStyle: document.getElementById('dynamic-font-style'), fontLinkContainer: document.getElementById('font-link-container'), restoreBtn: document.getElementById('restore-font-defaults') };
+            const savedFontsToggle = document.getElementById('saved-fonts-toggle');
+            const savedFontsListContainer = document.getElementById('saved-fonts-list-container');
+            let currentFontName = 'KingHwaOldSong';
+            const defaultCssContent = `<link rel="preload" as="style" crossorigin href="https://fontsapi.zeoseven.com/309/main/result.css" onload="this.rel='stylesheet'" onerror="this.href='httpsapi-storage.zeoseven.com/309/main/result.css'" />\n<noscript>\n    <link rel="stylesheet" href="https://fontsapi.zeoseven.com/309/main/result.css" />\n</noscript>\n<style>\n    body { font-family: "KingHwaOldSong"; }\n</style>`;
+            fontControls.cssInput.value = defaultCssContent;
+
+            let db;
+            function openDb() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open('FontStorageDB', 1);
+                    request.onupgradeneeded = event => {
+                        db = event.target.result;
+                        db.createObjectStore('fonts', { keyPath: 'id', autoIncrement: true });
+                    };
+                    request.onsuccess = event => { db = event.target.result; resolve(db); };
+                    request.onerror = event => reject('Database error: ' + event.target.errorCode);
+                });
+            }
+            const addFontToDb = (font) => new Promise((resolve, reject) => { const transaction = db.transaction(['fonts'], 'readwrite'); const store = transaction.objectStore('fonts'); const request = store.add(font); request.onsuccess = resolve; request.onerror = reject; });
+            const getAllFontsFromDb = () => new Promise((resolve, reject) => { const transaction = db.transaction(['fonts'], 'readonly'); const store = transaction.objectStore('fonts'); const request = store.getAll(); request.onsuccess = () => resolve(request.result); request.onerror = reject; });
+            const deleteFontFromDb = (id) => new Promise((resolve, reject) => { const transaction = db.transaction(['fonts'], 'readwrite'); const store = transaction.objectStore('fonts'); const request = store.delete(id); request.onsuccess = resolve; request.onerror = reject; });
+
+            function updateGlobalStyle(property, value) { document.documentElement.style.setProperty(property, value); updateFontPreview(); }
+            function updateFontPreview() { const size = fontControls.sizeSlider.value + 'px'; const weight = fontControls.weightSlider.value; fontControls.previewDetails.textContent = `${currentFontName} / ${size} / ${weight}`; }
+            
+            async function renderSavedFontsList() {
+                const fonts = await getAllFontsFromDb();
+                savedFontsListContainer.innerHTML = '';
+                if (fonts.length === 0) { savedFontsListContainer.innerHTML = '<p style="text-align: center; color: var(--text-light); font-size: 0.8em;">暂无已保存字体</p>'; return; }
+                fonts.forEach(font => {
+                    const item = document.createElement('div');
+                    item.className = 'saved-font-item';
+                    item.dataset.fontId = font.id;
+                    item.innerHTML = `<span class="saved-font-name" title="${font.name}">${font.name}</span><button class="delete-font-btn" data-font-id="${font.id}">×</button>`;
+                    savedFontsListContainer.appendChild(item);
+                });
+            }
+
+            function applySavedFont(font) {
+                let fontUrl;
+                if (font.type === 'data' && font.value instanceof Blob) {
+                    fontUrl = URL.createObjectURL(font.value);
+                } else {
+                    fontUrl = font.value;
+                }
+                const cssFontName = `SavedFont_${font.name.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}`;
+                fontControls.dynamicStyle.innerHTML = `@font-face { font-family: '${cssFontName}'; src: url('${fontUrl}'); }`;
+                currentFontName = font.name;
+                updateGlobalStyle('--font-main', `'${cssFontName}', sans-serif`);
+            }
+
+            savedFontsToggle.addEventListener('click', () => { const isExpanded = savedFontsListContainer.style.display === 'block'; savedFontsListContainer.style.display = isExpanded ? 'none' : 'block'; savedFontsToggle.classList.toggle('expanded', !isExpanded); });
+            savedFontsListContainer.addEventListener('click', async (e) => {
+                const target = e.target;
+                if (target.classList.contains('delete-font-btn')) {
+                    e.stopPropagation();
+                    const fontId = parseInt(target.dataset.fontId, 10);
+                    await deleteFontFromDb(fontId);
+                    renderSavedFontsList();
+                } else {
+                    const item = target.closest('.saved-font-item');
+                    if (item) {
+                        const fontId = parseInt(item.dataset.fontId, 10);
+                        const fonts = await getAllFontsFromDb();
+                        const fontToApply = fonts.find(f => f.id === fontId);
+                        if (fontToApply) applySavedFont(fontToApply);
+                    }
+                }
+            });
+
+            document.getElementById('upload-font-btn').addEventListener('click', () => fontControls.fileInput.click());
+            fontControls.fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0]; if (!file) return;
+                const suggestedName = file.name.split('.').slice(0, -1).join('.') || '本地字体';
+                openModal('为字体命名', suggestedName, async (newName) => {
+                    if (newName) {
+                        const newFont = { name: newName, type: 'data', value: file };
+                        await addFontToDb(newFont);
+                        renderSavedFontsList();
+                        applySavedFont(newFont);
+                    }
+                }, true);
+            });
+            
+            fontControls.urlInput.addEventListener('blur', (e) => {
+                const url = e.target.value.trim(); if (!url) return;
+                let suggestedName = '网络字体';
+                try { const urlPath = new URL(url).pathname; const fileName = urlPath.split('/').pop(); if (/\.(woff2?|ttf|otf)$/i.test(fileName)) { suggestedName = fileName; } } catch (error) {}
+                openModal('为字体命名', suggestedName, async (newName) => {
+                    if (newName) {
+                        const newFont = { name: newName, type: 'url', value: url };
+                        await addFontToDb(newFont);
+                        renderSavedFontsList();
+                        applySavedFont(newFont);
+                    }
+                }, true);
+            });
+            
+            fontControls.cssInput.addEventListener('input', () => { fontControls.fontLinkContainer.innerHTML = fontControls.cssInput.value; const match = fontControls.cssInput.value.match(/font-family:\s*["']?([^;"']+)["']?/); if (match && match[1]) { currentFontName = match[1]; updateGlobalStyle('--font-main', match[1]); } });
+            fontControls.sizeSlider.addEventListener('input', () => updateGlobalStyle('--global-font-size', fontControls.sizeSlider.value + 'px'));
+            fontControls.weightSlider.addEventListener('input', () => updateGlobalStyle('--global-font-weight', fontControls.weightSlider.value));
+            fontControls.restoreBtn.addEventListener('click', () => { currentFontName = 'KingHwaOldSong'; fontControls.cssInput.value = defaultCssContent; fontControls.urlInput.value = ''; fontControls.fontLinkContainer.innerHTML = defaultCssContent; fontControls.dynamicStyle.innerHTML = ''; fontControls.sizeSlider.value = 16; fontControls.weightSlider.value = 400; updateGlobalStyle('--font-main', '"KingHwaOldSong", sans-serif'); updateGlobalStyle('--global-font-size', '16px'); updateGlobalStyle('--global-font-weight', '400'); });
+
+            // --- 壁纸设置 ---
+            const wallpaperControls = { previewEnabledCheckbox: document.getElementById('enable-wallpaper-preview'), previewSection: document.getElementById('wallpaper-preview-section'), previewElement: document.getElementById('wallpaper-preview'), urlInput: document.getElementById('wallpaper-url-input'), restoreBtn: document.getElementById('restore-wallpaper-defaults') };
+            function applyWallpaper(imageUrl) { const urlString = imageUrl ? `url('${imageUrl}')` : 'none'; document.body.style.backgroundImage = urlString; if (wallpaperControls.previewEnabledCheckbox.checked) { wallpaperControls.previewElement.style.backgroundImage = urlString; } }
+            wallpaperControls.previewEnabledCheckbox.addEventListener('change', (e) => { wallpaperControls.previewSection.style.display = e.target.checked ? 'block' : 'none'; });
+            document.getElementById('upload-wallpaper-btn').addEventListener('click', () => document.getElementById('wallpaper-file-input').click());
+            document.getElementById('wallpaper-file-input').addEventListener('change', (event) => { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => applyWallpaper(e.target.result); reader.readAsDataURL(file); } });
+            wallpaperControls.urlInput.addEventListener('input', (e) => applyWallpaper(e.target.value.trim()));
+            wallpaperControls.restoreBtn.addEventListener('click', () => { applyWallpaper(null); wallpaperControls.urlInput.value = ''; });
+
+            // --- 图标设置 ---
+            const iconControlsContainer = document.getElementById('app-icon-controls');
+            const iconGroups = [ { title: 'App', count: 4, prefix: 'app-icon-' }, { title: '底部栏图标', count: 4, prefix: 'dock-icon-' } ];
+            iconGroups.forEach(group => { for (let i = 1; i <= group.count; i++) { const controlHtml = `<div class="icon-setting-group"><h4>${group.title} ${i} 图标</h4><div class="control-group"><button class="btn" data-target="${group.prefix}${i}">上传</button><input type="file" data-target="${group.prefix}${i}" accept="image/*" style="display:none;"><input type="text" data-target="${group.prefix}${i}" class="input-field" placeholder="或输入图片URL"></div></div>`; iconControlsContainer.innerHTML += controlHtml; } });
+            iconControlsContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { const targetId = e.target.dataset.target; iconControlsContainer.querySelector(`input[type="file"][data-target="${targetId}"]`).click(); } });
+            iconControlsContainer.addEventListener('change', (e) => { if (e.target.type === 'file') { const file = e.target.files[0]; const targetId = e.target.dataset.target; if (file) { const reader = new FileReader(); reader.onload = (re) => { const iconEl = document.getElementById(targetId); iconEl.style.backgroundImage = `url('${re.target.result}')`; iconEl.style.backgroundColor = 'transparent'; }; reader.readAsDataURL(file); } } });
+            iconControlsContainer.addEventListener('input', (e) => { if (e.target.type === 'text') { const url = e.target.value.trim(); const targetId = e.target.dataset.target; const iconEl = document.getElementById(targetId); if (url) { iconEl.style.backgroundImage = `url('${url}')`; iconEl.style.backgroundColor = 'transparent'; } else { iconEl.style.backgroundImage = 'none'; iconEl.style.backgroundColor = '#fff'; } } });
+            document.getElementById('restore-icon-defaults').addEventListener('click', () => { iconControlsContainer.querySelectorAll('input[type="text"]').forEach(input => input.value = ''); iconGroups.forEach(group => { for (let i = 1; i <= group.count; i++) { const iconEl = document.getElementById(`${group.prefix}${i}`); iconEl.style.backgroundImage = 'none'; iconEl.style.backgroundColor = '#fff'; } }); });
+
+            // --- 主题色设置 ---
+            const themeControls = { preview: document.getElementById('theme-color-preview'), hexInput: document.getElementById('theme-color-hex'), restoreBtn: document.getElementById('restore-theme-defaults') };
+            const defaultThemeColor = '#e8f0e9';
+            function hexToRgba(hex, alpha = 1) { let r = 0, g = 0, b = 0; if (hex.length == 4) { r = parseInt(hex[1] + hex[1], 16); g = parseInt(hex[2] + hex[2], 16); b = parseInt(hex[3] + hex[3], 16); } else if (hex.length == 7) { r = parseInt(hex.slice(1, 3), 16); g = parseInt(hex.slice(3, 5), 16); b = parseInt(hex.slice(5, 7), 16); } return `rgba(${r}, ${g}, ${b}, ${alpha})`; }
+            function applyThemeColor(color) { document.documentElement.style.setProperty('--placeholder-bg', color); themeControls.preview.style.backgroundColor = color; updateDockAppearance(); }
+            themeControls.hexInput.addEventListener('input', (e) => { const newColor = e.target.value; if (/^#([0-9A-F]{3}){1,2}$/i.test(newColor)) { applyThemeColor(newColor); } });
+            themeControls.restoreBtn.addEventListener('click', () => { themeControls.hexInput.value = defaultThemeColor; applyThemeColor(defaultThemeColor); });
+
+            // --- 底部栏设置 ---
+            const dockControls = { whiteBgToggle: document.getElementById('dock-white-bg-toggle'), opacitySlider: document.getElementById('dock-opacity-slider'), previewBox: document.getElementById('dock-preview'), restoreBtn: document.getElementById('restore-dock-defaults') };
+            const defaultDockOpacity = 0.85;
+            function updateDockAppearance() { const opacity = dockControls.opacitySlider.value; const isWhite = dockControls.whiteBgToggle.checked; const themeColor = getComputedStyle(document.documentElement).getPropertyValue('--placeholder-bg').trim(); const baseHex = isWhite ? '#ffffff' : themeColor; const newDockColor = hexToRgba(baseHex, opacity); document.documentElement.style.setProperty('--dock-bg', newDockColor); dockControls.previewBox.style.backgroundColor = newDockColor; }
+            dockControls.whiteBgToggle.addEventListener('change', updateDockAppearance);
+            dockControls.opacitySlider.addEventListener('input', updateDockAppearance);
+            dockControls.restoreBtn.addEventListener('click', () => { dockControls.whiteBgToggle.checked = false; dockControls.opacitySlider.value = defaultDockOpacity; updateDockAppearance(); });
+
+            // --- 头像框设置 ---
+            const avatarFrameControls = { toggle: document.getElementById('enable-avatar-frame-toggle'), uploadBtn: document.getElementById('upload-avatar-frame-btn'), fileInput: document.getElementById('avatar-frame-file-input'), urlInput: document.getElementById('avatar-frame-url-input'), restoreBtn: document.getElementById('restore-avatar-frame-defaults'), mainFrame: document.getElementById('avatar-frame-overlay'), previewFrame: document.getElementById('preview-avatar-frame'), mainAvatar: document.getElementById('avatar-container'), previewAvatar: document.getElementById('preview-avatar'), xSlider: document.getElementById('avatar-frame-x-slider'), ySlider: document.getElementById('avatar-frame-y-slider'), scaleSlider: document.getElementById('avatar-frame-scale-slider') };
+            function applyAvatarFrame() {
+                const isEnabled = avatarFrameControls.toggle.checked; const imageUrl = avatarFrameControls.urlInput.value.trim(); const frameElements = [avatarFrameControls.mainFrame, avatarFrameControls.previewFrame]; const avatarElements = [avatarFrameControls.mainAvatar, avatarFrameControls.previewAvatar];
+                avatarElements.forEach(el => el.classList.toggle('avatar-framed', isEnabled));
+                frameElements.forEach(el => { el.style.backgroundImage = 'none'; el.style.boxShadow = 'none'; if (isEnabled) { if (imageUrl) { el.style.backgroundImage = `url('${imageUrl}')`; } else { el.style.boxShadow = '0 0 0 3px white, 0 4px 10px rgba(0,0,0,0.15)'; } } });
+            }
+            function applyAvatarFrameTransform() { const x = avatarFrameControls.xSlider.value; const y = avatarFrameControls.ySlider.value; const scale = avatarFrameControls.scaleSlider.value; const transformValue = `translate(${x}px, ${y}px) scale(${scale})`; [avatarFrameControls.mainFrame, avatarFrameControls.previewFrame].forEach(el => { el.style.transform = transformValue; }); }
+            avatarFrameControls.toggle.addEventListener('change', applyAvatarFrame);
+            avatarFrameControls.uploadBtn.addEventListener('click', () => avatarFrameControls.fileInput.click());
+            avatarFrameControls.fileInput.addEventListener('change', (event) => { const file = event.target.files[0]; if (file) { if (currentAvatarFrameURL) URL.revokeObjectURL(currentAvatarFrameURL); currentAvatarFrameURL = URL.createObjectURL(file); avatarFrameControls.urlInput.value = currentAvatarFrameURL; applyAvatarFrame(); } });
+            avatarFrameControls.urlInput.addEventListener('input', () => { if (currentAvatarFrameURL && !avatarFrameControls.urlInput.value.startsWith('blob:')) { URL.revokeObjectURL(currentAvatarFrameURL); currentAvatarFrameURL = null; } applyAvatarFrame(); });
+            avatarFrameControls.xSlider.addEventListener('input', applyAvatarFrameTransform);
+            avatarFrameControls.ySlider.addEventListener('input', applyAvatarFrameTransform);
+            avatarFrameControls.scaleSlider.addEventListener('input', applyAvatarFrameTransform);
+            avatarFrameControls.restoreBtn.addEventListener('click', () => { avatarFrameControls.toggle.checked = false; avatarFrameControls.urlInput.value = ''; avatarFrameControls.fileInput.value = ''; avatarFrameControls.xSlider.value = 0; avatarFrameControls.ySlider.value = 0; avatarFrameControls.scaleSlider.value = 1; if (currentAvatarFrameURL) { URL.revokeObjectURL(currentAvatarFrameURL); currentAvatarFrameURL = null; } applyAvatarFrame(); applyAvatarFrameTransform(); });
+
+            // --- 编辑资料弹窗 ---
+            const modal = { overlay: document.getElementById('edit-modal'), title: document.getElementById('modal-title'), input: document.getElementById('modal-input'), save: document.getElementById('modal-save'), cancel: document.getElementById('modal-cancel') };
+            let onSaveCallback = null;
+            function openModal(title, value, onSave, isSingleLine = false) { onSaveCallback = onSave; modal.title.textContent = title; modal.input.value = value; modal.input.style.resize = isSingleLine ? 'none' : 'vertical'; modal.input.rows = isSingleLine ? 1 : 3; modal.overlay.classList.add('visible'); modal.input.focus(); }
+            function closeModal() { modal.overlay.classList.remove('visible'); onSaveCallback = null; }
+            modal.save.addEventListener('click', () => { if (onSaveCallback) onSaveCallback(modal.input.value); closeModal(); });
+            modal.cancel.addEventListener('click', closeModal);
+            modal.overlay.addEventListener('click', (e) => { if (e.target === modal.overlay) closeModal(); });
+            
+            // --- 桌面信息编辑事件 ---
+            document.querySelector('.nickname').addEventListener('click', (e) => openModal('编辑昵称', e.target.textContent, (val) => e.target.textContent = val, true));
+            document.querySelector('.username').addEventListener('click', (e) => openModal('编辑ID', e.target.textContent, (val) => e.target.textContent = val, true));
+            document.querySelector('.bio').addEventListener('click', (e) => openModal('编辑签名', e.target.textContent, (val) => e.target.textContent = val));
+            document.querySelector('.location span').addEventListener('click', (e) => openModal('编辑地点', e.target.textContent, (val) => e.target.textContent = val, true));
+            
+            // --- START: API Config Page Logic ---
+            const apiConfigControls = { provider: document.getElementById('api-provider-select'), urlInput: document.getElementById('api-url-input'), keyInput: document.getElementById('api-key-input'), keyTextarea: document.getElementById('api-key-textarea'), toggleKey: document.getElementById('toggle-api-key-visibility'), model: document.getElementById('api-model-select'), testBtn: document.getElementById('test-connection-btn'), saveBtn: document.getElementById('save-api-settings-btn'), restoreBtn: document.getElementById('restore-api-defaults-btn'), status: document.getElementById('connection-status'), };
+            const apiPageControls = { title: document.getElementById('app-page-title'), configPage: document.getElementById('config-page'), presetsPage: document.getElementById('presets-page'), navConfigBtn: document.getElementById('nav-config-btn'), navPresetsBtn: document.getElementById('nav-presets-btn'), presetsListContainer: document.getElementById('presets-list-container') };
+            const apiPromptControls = { overlay: document.getElementById('custom-prompt'), title: document.getElementById('custom-prompt-title'), input: document.getElementById('custom-prompt-input'), cancelBtn: document.getElementById('custom-prompt-cancel'), confirmBtn: document.getElementById('custom-prompt-confirm'), };
+
+            const CORS_PROXY_URL = 'https://corsproxy.io/?';
+            const providerData = {
+                openai:   { url: 'https://api.openai.com/v1',                     useProxy: true, testable: true },
+                deepseek: { url: 'https://api.deepseek.com/v1',                   useProxy: true, testable: true },
+                gemini:   { url: 'https://generativelanguage.googleapis.com/v1beta', useProxy: true, testable: false, modelsEndpoint: false },
+                claude:   { url: 'https://api.anthropic.com/v1',                  useProxy: true, testable: false, modelsEndpoint: false },
+                reverse_proxy: { url: '', useProxy: false, testable: true },
+                custom:        { url: '', useProxy: false, testable: true },
+                polling:       { url: '', useProxy: false, testable: true }
+            };
+            
+            let promptResolve = null; function showCustomPrompt(title, placeholder) { apiPromptControls.title.textContent = title; apiPromptControls.input.placeholder = placeholder; apiPromptControls.input.value = ''; apiPromptControls.overlay.classList.add('visible'); apiPromptControls.input.focus(); return new Promise(resolve => { promptResolve = resolve; }); } function hideCustomPrompt() { apiPromptControls.overlay.classList.remove('visible'); promptResolve = null; } apiPromptControls.confirmBtn.addEventListener('click', () => { if (promptResolve) promptResolve(apiPromptControls.input.value); hideCustomPrompt(); }); apiPromptControls.cancelBtn.addEventListener('click', () => { if (promptResolve) promptResolve(null); hideCustomPrompt(); }); apiPromptControls.overlay.addEventListener('click', (e) => { if (e.target === apiPromptControls.overlay) { if (promptResolve) promptResolve(null); hideCustomPrompt(); } });
+
+            function showApiSubPage(pageName) {
+                apiPageControls.configPage.classList.remove('active'); apiPageControls.presetsPage.classList.remove('active'); apiPageControls.navConfigBtn.classList.remove('active'); apiPageControls.navPresetsBtn.classList.remove('active');
+                if (pageName === 'config') { apiPageControls.configPage.classList.add('active'); apiPageControls.navConfigBtn.classList.add('active'); apiPageControls.title.textContent = 'API 配置'; } 
+                else if (pageName === 'presets') { apiPageControls.presetsPage.classList.add('active'); apiPageControls.navPresetsBtn.classList.add('active'); apiPageControls.title.textContent = '我的预设'; renderPresets(); }
+            }
+
+            function getPresets() { return JSON.parse(localStorage.getItem('apiPresets')) || []; }
+            function savePresets(presets) { localStorage.setItem('apiPresets', JSON.stringify(presets)); }
+
+            function renderPresets() {
+                const presets = getPresets();
+                apiPageControls.presetsListContainer.innerHTML = '';
+                if (presets.length === 0) { apiPageControls.presetsListContainer.innerHTML = `<p style="text-align:center; color: var(--text-light);">暂无预设，请在“配置”页面连接成功后保存。</p>`; return; }
+                presets.forEach((preset, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'preset-list-item';
+                    item.innerHTML = `<span class="preset-name">${preset.name}</span><div class="preset-actions"><button class="btn btn-sm btn-apply">应用</button><button class="btn btn-sm btn-delete">删除</button></div>`;
+                    item.querySelector('.btn-apply').addEventListener('click', () => loadPreset(index));
+                    item.querySelector('.btn-delete').addEventListener('click', () => deletePreset(index));
+                    apiPageControls.presetsListContainer.appendChild(item);
+                });
+            }
+            
+            function loadPreset(index) {
+                const presets = getPresets();
+                if (presets[index]) {
+                    applyApiSettings(presets[index].settings);
+                    alert(`预设 “${presets[index].name}” 已应用并加载模型！`);
+                    showApiSubPage('config');
+                }
+            }
+
+            function deletePreset(index) {
+                const presets = getPresets();
+                if (!confirm(`确定要删除预设 “${presets[index].name}” 吗？`)) return;
+                presets.splice(index, 1);
+                savePresets(presets);
+                renderPresets();
+            }
+            
+            async function fetchModels(url, key, useProxy) { apiConfigControls.status.textContent = '正在拉取模型列表...'; apiConfigControls.status.className = ''; try { const baseUrl = useProxy ? CORS_PROXY_URL + encodeURIComponent(url) : url; const finalUrl = `${baseUrl.replace(/\/$/, "")}/models`; const response = await fetch(finalUrl, { method: 'GET', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, mode: 'cors' }); if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP ${response.status}: ${errorText.slice(0, 100)}`); } const data = await response.json(); apiConfigControls.status.textContent = '模型列表拉取成功！'; apiConfigControls.status.classList.add('success'); const models = data.data || data; if (!Array.isArray(models)) throw new Error('返回数据格式不正确'); return models.map(model => model.id).sort(); } catch (error) { apiConfigControls.status.textContent = `拉取失败: ${error.message}`; apiConfigControls.status.classList.add('error'); return []; } }
+            
+            function updateControlsForProvider() { const provider = apiConfigControls.provider.value; const data = providerData[provider]; apiConfigControls.urlInput.value = data.url; const isPolling = provider === 'polling'; apiConfigControls.keyInput.style.display = isPolling ? 'none' : 'block'; apiConfigControls.keyTextarea.style.display = isPolling ? 'block' : 'none'; apiConfigControls.toggleKey.style.display = isPolling ? 'none' : 'inline-block'; apiConfigControls.model.innerHTML = ''; const placeholderText = data.modelsEndpoint === false ? '此服务商不支持自动拉取模型' : '请先进行连接测试来拉取模型'; const option = document.createElement('option'); option.textContent = placeholderText; apiConfigControls.model.appendChild(option); }
+            
+            function getCurrentApiSettings(modelsList = []) {
+                const provider = apiConfigControls.provider.value;
+                return {
+                    provider: provider,
+                    url: apiConfigControls.urlInput.value,
+                    key: provider === 'polling' ? apiConfigControls.keyTextarea.value : apiConfigControls.keyInput.value,
+                    model: apiConfigControls.model.value,
+                    models: modelsList
+                };
+            }
+
+            function applyApiSettings(settings) {
+                apiConfigControls.provider.value = settings.provider || 'openai';
+                updateControlsForProvider();
+                apiConfigControls.urlInput.value = settings.url;
+                if (settings.provider === 'polling') {
+                    apiConfigControls.keyTextarea.value = settings.key;
+                } else {
+                    apiConfigControls.keyInput.value = settings.key;
+                }
+                
+                apiConfigControls.model.innerHTML = '';
+                if (settings.models && settings.models.length > 0) {
+                    settings.models.forEach(modelName => {
+                        const option = document.createElement('option');
+                        option.value = modelName;
+                        option.textContent = modelName;
+                        apiConfigControls.model.appendChild(option);
+                    });
+                    apiConfigControls.status.textContent = '预设已应用，模型列表已加载。';
+                    apiConfigControls.status.className = 'success';
+                } else {
+                    const option = document.createElement('option');
+                    option.textContent = '请先进行连接测试来拉取模型';
+                    apiConfigControls.model.appendChild(option);
+                    apiConfigControls.status.textContent = '';
+                    apiConfigControls.status.className = '';
+                }
+                apiConfigControls.model.value = settings.model;
+            }
+
+            function saveCurrentApiSettings() {
+                localStorage.setItem('apiSettings', JSON.stringify(getCurrentApiSettings()));
+                alert('API 设置已保存!');
+            }
+
+            function loadLastApiSettings() {
+                const settingsJSON = localStorage.getItem('apiSettings');
+                if (settingsJSON) { applyApiSettings(JSON.parse(settingsJSON)); } 
+                else { updateControlsForProvider(); }
+            }
+
+            function isExistingPreset(currentSettings) {
+                const presets = getPresets();
+                return presets.some(p =>
+                    p.settings.provider === currentSettings.provider &&
+                    p.settings.url === currentSettings.url &&
+                    p.settings.key === currentSettings.key
+                );
+            }
+
+            async function testAndFetch() {
+                const provider = apiConfigControls.provider.value, config = providerData[provider];
+                if (!config.testable) { apiConfigControls.status.textContent = '此服务商不支持自动拉取模型。'; return; }
+                const url = apiConfigControls.urlInput.value.trim();
+                let key = provider === 'polling' ? apiConfigControls.keyTextarea.value.split('\n')[0].trim() : apiConfigControls.keyInput.value.trim();
+                if (!url || !key) { apiConfigControls.status.textContent = 'URL 和 Key 不能为空。'; apiConfigControls.status.classList.add('error'); return; }
+                
+                const currentConfigForCheck = getCurrentApiSettings();
+                const models = await fetchModels(url, key, config.useProxy);
+                
+                if (models.length > 0) {
+                    const currentModel = apiConfigControls.model.value;
+                    apiConfigControls.model.innerHTML = '';
+                    models.forEach(modelName => {
+                        const option = document.createElement('option');
+                        option.value = modelName; option.textContent = modelName;
+                        apiConfigControls.model.appendChild(option);
+                    });
+                    if (models.includes(currentModel)) { apiConfigControls.model.value = currentModel; }
+
+                    if (!isExistingPreset(currentConfigForCheck)) {
+                        const presetName = await showCustomPrompt('连接成功！', '为此配置命名以保存为预设');
+                        if (presetName && presetName.trim() !== '') {
+                            const presets = getPresets();
+                            const newPreset = { name: presetName.trim(), settings: getCurrentApiSettings(models) };
+                            presets.push(newPreset);
+                            savePresets(presets);
+                            alert(`预设 “${presetName.trim()}” 已保存！`);
+                        }
+                    }
+                }
+            }
+
+            apiPageControls.navConfigBtn.addEventListener('click', () => showApiSubPage('config'));
+            apiPageControls.navPresetsBtn.addEventListener('click', () => showApiSubPage('presets'));
+            apiConfigControls.provider.addEventListener('change', updateControlsForProvider);
+            apiConfigControls.toggleKey.addEventListener('click', () => { apiConfigControls.keyInput.type = apiConfigControls.keyInput.type === 'password' ? 'text' : 'password'; });
+            apiConfigControls.saveBtn.addEventListener('click', saveCurrentApiSettings);
+            apiConfigControls.testBtn.addEventListener('click', testAndFetch);
+            apiConfigControls.restoreBtn.addEventListener('click', () => { localStorage.removeItem('apiSettings'); apiConfigControls.provider.value = 'openai'; apiConfigControls.keyInput.value = ''; apiConfigControls.keyTextarea.value = ''; loadLastApiSettings(); alert('已恢复默认设置。'); });
+            
+            loadLastApiSettings();
+            showApiSubPage('config');
+            // --- END: API Config Page Logic ---
+
+            // --- 全局初始化 ---
+            (async () => {
+                await openDb();
+                await renderSavedFontsList();
+                updateFontPreview();
+                wallpaperControls.previewSection.style.display = wallpaperControls.previewEnabledCheckbox.checked ? 'block' : 'none';
+                applyThemeColor(themeControls.hexInput.value);
+                applyAvatarFrame();
+                applyAvatarFrameTransform();
+                updateTime(); 
+                setInterval(updateTime, 30000);
+                updateBatteryStatus();
+            })();
+            
+            // --- 桌面图片上传初始化 ---
+            function updateAvatarImages(imageUrl) { document.getElementById('avatar-container').style.backgroundImage = `url('${imageUrl}')`; document.getElementById('preview-avatar').style.backgroundImage = `url('${imageUrl}')`; }
+            function setupImageUpload(triggerId, inputId, callback) {
+                const trigger = document.getElementById(triggerId); const input = document.getElementById(inputId);
+                trigger.addEventListener('click', () => input.click());
+                input.addEventListener('change', (event) => { const file = event.target.files[0]; if (file) { const objectURL = URL.createObjectURL(file); callback(objectURL); } });
+            }
+            setupImageUpload('avatar-container', 'avatar-upload', updateAvatarImages);
+            setupImageUpload('profile-banner', 'banner-upload', (result) => document.getElementById('profile-banner').style.backgroundImage = `url('${result}')`);
+            setupImageUpload('widget-left', 'widget-left-upload', (result) => document.getElementById('widget-left').style.backgroundImage = `url('${result}')`);
+        });
+
+        // --- 系统状态函数 ---
+        function updateBatteryStatus() { if ('getBattery' in navigator) { navigator.getBattery().then(function(battery) { const container = document.getElementById('battery-container'); function updateAll() { container.classList.toggle('battery-charging', battery.charging); container.classList.toggle('battery-low', !battery.charging && battery.level <= 0.2); updateBatteryLevel(battery.level); } updateAll(); battery.addEventListener('chargingchange', updateAll); battery.addEventListener('levelchange', updateAll); }); } else { updateBatteryLevel(0.88); } }
+        function updateBatteryLevel(level) { const fill = document.getElementById('battery-fill'); if(fill) fill.setAttribute('width', String(Math.max(2, Math.floor(22 * level)))); }
+        function updateTime() { const now = new Date(); const timeDisplay = document.getElementById('current-time'); if (timeDisplay) timeDisplay.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`; }
+    </script>
+</body>
+</html>
