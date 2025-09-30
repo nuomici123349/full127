@@ -575,11 +575,11 @@
             <footer id="api-config-page-footer" class="app-footer"><button id="nav-config-btn" class="nav-btn active">配置</button><button id="nav-presets-btn" class="nav-btn">预设</button></footer>
         </div>
         
-        <!-- 角色书页面 -->
+        <!-- 角色书/用户人设 页面 -->
         <div id="char-list-page" class="page">
             <header class="app-header-generic">
                 <button class="header-btn-generic back-button-generic" aria-label="返回"><svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                <h2 class="app-title-generic">角色书</h2>
+                <h2 id="char-book-title" class="app-title-generic clickable">角色书 (Char)</h2>
                 <div class="header-actions-generic">
                     <div style="position: relative;">
                         <button id="char-add-button" class="action-button-generic" aria-label="新建"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
@@ -594,6 +594,8 @@
             </header>
             <main id="char-list-content-area" class="app-content-area"></main>
         </div>
+
+        <!-- 角色书编辑器 -->
         <div id="char-editor-page" class="page">
             <header class="app-header-generic">
                 <button class="header-btn-generic back-button-generic" aria-label="返回"><svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
@@ -604,7 +606,7 @@
                 <div class="avatar-uploader">
                     <div id="char-avatar-preview" class="avatar-preview" data-image-data=""></div>
                 </div>
-                <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+                <input type="file" id="char-avatar-file-input" accept="image/*" style="display: none;">
                 <div class="form-group"><label for="char-avatar-url">或输入头像URL</label><input type="text" id="char-avatar-url" placeholder="https://..."></div>
                 <div class="form-group"><label for="char-name">名字</label><input type="text" id="char-name" placeholder="为你的角色起个名字"></div>
                 <div class="form-group"><label for="char-group">所属分组</label><select id="char-group"></select></div>
@@ -621,13 +623,36 @@
                 <div id="delete-button-container" class="delete-button-container"><button id="delete-char-button" class="delete-button">删除角色</button></div>
             </main>
         </div>
+
+        <!-- 用户人设编辑器 (NEW) -->
+        <div id="user-persona-editor-page" class="page">
+            <header class="app-header-generic">
+                <button class="header-btn-generic back-button-generic" aria-label="返回"><svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                <h2 id="user-persona-editor-title" class="app-title-generic">新建用户人设</h2>
+                <button id="save-user-persona-button" class="header-btn-generic right-header-btn-generic">保存</button>
+            </header>
+            <main class="editor-content">
+                <div class="avatar-uploader">
+                    <div id="user-persona-avatar-preview" class="avatar-preview" data-image-data=""></div>
+                </div>
+                <input type="file" id="user-persona-avatar-file-input" accept="image/*" style="display: none;">
+                <div class="form-group"><label for="user-persona-avatar-url">或输入头像URL</label><input type="text" id="user-persona-avatar-url" placeholder="https://..."></div>
+                <div class="form-group"><label for="user-persona-name">名字</label><input type="text" id="user-persona-name" placeholder="为你的人设起个名字"></div>
+                <div class="form-group"><label for="user-persona-group">所属分组</label><select id="user-persona-group"></select></div>
+                <div class="form-group"><label for="user-persona-bio">一句话简介</label><input type="text" id="user-persona-bio" placeholder="对人设的简短概括"></div>
+                <div class="form-group"><label for="user-persona-desc">角色描述</label><textarea id="user-persona-desc" placeholder="详细描述人设的性格、背景、外貌等..."></textarea></div>
+                <div class="form-group"><label for="user-persona-memory">重点记忆</label><textarea id="user-persona-memory" placeholder="需要重点记忆的内容..."></textarea></div>
+                <div id="delete-user-persona-container" class="delete-button-container"><button id="delete-user-persona-button" class="delete-button">删除人设</button></div>
+            </main>
+        </div>
+
         <div id="char-group-manager-page" class="page">
             <header class="app-header-generic">
                 <button class="header-btn-generic back-button-generic" aria-label="返回"><svg viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                <h2 class="app-title-generic">分组管理</h2>
-                <div class="header-actions-generic"><button id="char-add-new-group-btn" class="action-button-generic" aria-label="新建分组"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
+                <h2 id="group-manager-title" class="app-title-generic">分组管理</h2>
+                <div class="header-actions-generic"><button id="add-new-group-btn" class="action-button-generic" aria-label="新建分组"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button></div>
             </header>
-            <main id="char-group-manager-content" class="app-content-area padded"></main>
+            <main id="group-manager-content" class="app-content-area padded"></main>
         </div>
         <input type="file" id="char-json-char-input" accept=".json" style="display: none;">
         
@@ -775,10 +800,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. 全局状态与数据中心 ---
     let globalState = {
         history: ['desktop-page'],
+        characterBookView: 'char', // NEW: 'char' or 'user'
+        currentGroupManagementContext: 'char', // NEW: 'char' or 'user'
+
         characters: [],
         characterGroups: ['默认分组'],
         characterCollapsedGroups: [],
         editingCharId: null,
+
+        userPersonas: [], // NEW
+        userPersonaGroups: ['默认分组'], // NEW
+        editingUserPersonaId: null, // NEW
+
         worldBooks: [],
         presets: [], 
         contentGroups: ["未分组"],
@@ -972,9 +1005,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return { init, updateApiStatusIndicator };
     })();
 
-    // --- 6. 角色书APP逻辑 ---
+    // --- 6. 角色书 & 用户人设 APP逻辑 ---
     const charBookLogic = (() => {
-        const charListPage = { contentArea: document.getElementById('char-list-content-area'), addButton: document.getElementById('char-add-button'), addMenu: document.getElementById('char-add-menu'), addNewItemBtn: document.getElementById('char-add-new-item-btn'), importJsonBtn: document.getElementById('char-import-json-btn'), jsonCharInput: document.getElementById('char-json-char-input'), manageGroupsBtn: document.getElementById('char-manage-groups-btn'), };
+        const charListPage = { 
+            title: document.getElementById('char-book-title'),
+            contentArea: document.getElementById('char-list-content-area'), 
+            addButton: document.getElementById('char-add-button'), 
+            addMenu: document.getElementById('char-add-menu'), 
+            addNewItemBtn: document.getElementById('char-add-new-item-btn'), 
+            importJsonBtn: document.getElementById('char-import-json-btn'), 
+            jsonCharInput: document.getElementById('char-json-char-input'), 
+            manageGroupsBtn: document.getElementById('char-manage-groups-btn'), 
+        };
         const charEditorPage = { 
             page: document.getElementById('char-editor-page'), 
             title: document.getElementById('char-editor-title'), 
@@ -983,7 +1025,7 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteButton: document.getElementById('delete-char-button'), 
             avatarPreview: document.getElementById('char-avatar-preview'),
             avatarUrlInput: document.getElementById('char-avatar-url'), 
-            avatarFileInput: document.getElementById('avatar-file-input'), 
+            avatarFileInput: document.getElementById('char-avatar-file-input'), 
             nameInput: document.getElementById('char-name'), 
             groupSelect: document.getElementById('char-group'), 
             worldBookSelect: document.getElementById('char-worldbook-select'), 
@@ -996,45 +1038,163 @@ document.addEventListener('DOMContentLoaded', () => {
             addOnlineGreetingBtn: document.getElementById('add-online-greeting'), 
             addOfflineGreetingBtn: document.getElementById('add-offline-greeting'), 
         };
-        const charGroupManagerPage = { page: document.getElementById('char-group-manager-page'), contentArea: document.getElementById('char-group-manager-content'), addNewGroupBtn: document.getElementById('char-add-new-group-btn'), };
+        const userPersonaEditorPage = {
+            page: document.getElementById('user-persona-editor-page'),
+            title: document.getElementById('user-persona-editor-title'),
+            saveButton: document.getElementById('save-user-persona-button'),
+            deleteBtnContainer: document.getElementById('delete-user-persona-container'),
+            deleteButton: document.getElementById('delete-user-persona-button'),
+            avatarPreview: document.getElementById('user-persona-avatar-preview'),
+            avatarUrlInput: document.getElementById('user-persona-avatar-url'),
+            avatarFileInput: document.getElementById('user-persona-avatar-file-input'),
+            nameInput: document.getElementById('user-persona-name'),
+            groupSelect: document.getElementById('user-persona-group'),
+            bioInput: document.getElementById('user-persona-bio'),
+            descTextarea: document.getElementById('user-persona-desc'),
+            memoryTextarea: document.getElementById('user-persona-memory'),
+        };
+        const groupManagerPage = { 
+            page: document.getElementById('char-group-manager-page'), 
+            title: document.getElementById('group-manager-title'),
+            contentArea: document.getElementById('group-manager-content'), 
+            addNewGroupBtn: document.getElementById('add-new-group-btn'), 
+        };
         
-        function renderCharList() { const area = charListPage.contentArea; area.innerHTML = ''; if (globalState.characters.length === 0) { area.innerHTML = `<p class="empty-placeholder">空空如也~<br>点击右上角“+”来创建第一个角色吧！</p>`; return; } globalState.characterGroups.forEach(groupName => { const itemsInGroup = globalState.characters.filter(item => item.group === groupName); if (itemsInGroup.length === 0) return; const isCollapsed = globalState.characterCollapsedGroups.includes(groupName); const groupHeader = document.createElement('div'); groupHeader.className = 'list-group-header' + (isCollapsed ? ' collapsed' : ''); groupHeader.dataset.groupName = groupName; groupHeader.innerHTML = `<span>${groupName}</span><span class="list-toggle-arrow">▲</span>`; area.appendChild(groupHeader); const cardContainer = document.createElement('div'); cardContainer.className = 'list-card-container' + (isCollapsed ? ' collapsed' : ''); cardContainer.innerHTML = itemsInGroup.map(item => `<div class="character-card" data-id="${item.id}"><div class="card-avatar" style="background-image: url('${item.avatar || `https://dummyimage.com/100x100/e8f0e9/5a6e60.png&text=${encodeURIComponent(item.name.charAt(0))}` }');"></div><div class="card-content"><h4 class="card-title">${item.name}</h4><p class="card-description">${item.bio || '暂无简介'}</p></div></div>`).join(''); area.appendChild(cardContainer); }); }
-        function renderCharGroupManager() { const area = charGroupManagerPage.contentArea; area.innerHTML = ''; globalState.characterGroups.forEach(groupName => { const isDefault = groupName === '默认分组'; const itemsInGroup = globalState.characters.filter(item => item.group === groupName); const itemsHTML = itemsInGroup.length > 0 ? itemsInGroup.map(item => `<div class="group-manage-content-item" data-id="${item.id}"><span>${item.name}</span></div>`).join('') : '<p style="font-size:0.85em; color:var(--text-light-fixed); text-align:center; padding: 10px 0;">此分组下无项目</p>'; const groupDiv = document.createElement('div'); groupDiv.className = 'group-manage-item'; groupDiv.innerHTML = `<div class="group-manage-header"><h3 data-group-name="${groupName}" class="${!isDefault ? 'clickable' : ''}">${groupName}</h3>${!isDefault ? `<button class="action-button-generic delete-group-btn" data-group-name="${groupName}" aria-label="删除分组"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>` : ''}</div><div class="group-manage-content">${itemsHTML}</div>`; area.appendChild(groupDiv); }); }
+        function toggleCharBookView() {
+            globalState.characterBookView = (globalState.characterBookView === 'char') ? 'user' : 'char';
+            updateCharBookView();
+        }
+
+        function updateCharBookView() {
+            const isCharView = globalState.characterBookView === 'char';
+            charListPage.title.textContent = isCharView ? '角色书 (Char)' : '用户人设 (User)';
+            charListPage.addNewItemBtn.textContent = isCharView ? '新建角色书' : '新建用户人设';
+            charListPage.importJsonBtn.style.display = isCharView ? 'block' : 'none';
+            renderList();
+        }
+
+        function renderList() {
+            const isCharView = globalState.characterBookView === 'char';
+            const area = charListPage.contentArea;
+            const items = isCharView ? globalState.characters : globalState.userPersonas;
+            const groups = isCharView ? globalState.characterGroups : globalState.userPersonaGroups;
+            
+            area.innerHTML = '';
+            if (items.length === 0) {
+                area.innerHTML = `<p class="empty-placeholder">空空如也~<br>点击右上角“+”来创建第一个${isCharView ? '角色' : '人设'}吧！</p>`;
+                return;
+            }
+            
+            groups.forEach(groupName => {
+                const itemsInGroup = items.filter(item => item.group === groupName);
+                if (itemsInGroup.length === 0) return;
+                
+                const isCollapsed = isCharView ? globalState.characterCollapsedGroups.includes(groupName) : false; // User personas don't have collapse state for now
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'list-group-header' + (isCollapsed ? ' collapsed' : '');
+                groupHeader.dataset.groupName = groupName;
+                groupHeader.innerHTML = `<span>${groupName}</span><span class="list-toggle-arrow">▲</span>`;
+                area.appendChild(groupHeader);
+                
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'list-card-container' + (isCollapsed ? ' collapsed' : '');
+                cardContainer.innerHTML = itemsInGroup.map(item => `
+                    <div class="character-card" data-id="${item.id}">
+                        <div class="card-avatar" style="background-image: url('${item.avatar || `https://dummyimage.com/100x100/e8f0e9/5a6e60.png&text=${encodeURIComponent(item.name.charAt(0))}` }');"></div>
+                        <div class="card-content">
+                            <h4 class="card-title">${item.name}</h4>
+                            <p class="card-description">${item.bio || '暂无简介'}</p>
+                        </div>
+                    </div>`).join('');
+                area.appendChild(cardContainer);
+            });
+        }
+        
+        function renderGroupManager() {
+            const isCharView = globalState.currentGroupManagementContext === 'char';
+            groupManagerPage.title.textContent = isCharView ? '角色分组管理' : '人设分组管理';
+            const area = groupManagerPage.contentArea;
+            const items = isCharView ? globalState.characters : globalState.userPersonas;
+            const groups = isCharView ? globalState.characterGroups : globalState.userPersonaGroups;
+            const defaultGroup = isCharView ? '默认分组' : '默认分组';
+
+            area.innerHTML = '';
+            groups.forEach(groupName => {
+                const isDefault = groupName === defaultGroup;
+                const itemsInGroup = items.filter(item => item.group === groupName);
+                const itemsHTML = itemsInGroup.length > 0 ? itemsInGroup.map(item => `<div class="group-manage-content-item" data-id="${item.id}"><span>${item.name}</span></div>`).join('') : '<p style="font-size:0.85em; color:var(--text-light-fixed); text-align:center; padding: 10px 0;">此分组下无项目</p>';
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'group-manage-item';
+                groupDiv.innerHTML = `
+                    <div class="group-manage-header">
+                        <h3 data-group-name="${groupName}" class="${!isDefault ? 'clickable' : ''}">${groupName}</h3>
+                        ${!isDefault ? `<button class="action-button-generic delete-group-btn" data-group-name="${groupName}" aria-label="删除分组"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>` : ''}
+                    </div>
+                    <div class="group-manage-content">${itemsHTML}</div>`;
+                area.appendChild(groupDiv);
+            });
+        }
+
         function addGreetingItem(container, type, content = '') { const itemCount = container.querySelectorAll('.greeting-item').length; const details = document.createElement('details'); details.className = 'greeting-item'; details.open = true; details.innerHTML = `<summary><span class="summary-title">${type}开场白 #${itemCount + 1}</span><span class="summary-controls"><button class="delete-greeting-btn" aria-label="删除此开场白"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button><span class="greeting-arrow">▶</span></span></summary><textarea class="greeting-textarea" placeholder="请输入...">${content}</textarea>`; container.appendChild(details); }
         function renderGreetingItems(container, greetings, type) { container.innerHTML = ''; greetings.forEach((greeting, index) => { addGreetingItem(container, type, greeting); if (index > 0) container.lastChild.open = false; }); }
         
         function openCharEditor(charId = null) {
             globalState.editingCharId = charId;
-            charEditorPage.avatarPreview.style.backgroundImage = ''; charEditorPage.avatarPreview.dataset.imageData = ''; charEditorPage.avatarUrlInput.value = ''; charEditorPage.nameInput.value = ''; charEditorPage.bioInput.value = ''; charEditorPage.descTextarea.value = ''; charEditorPage.onlineSwitch.checked = false; charEditorPage.onlineContainer.innerHTML = ''; charEditorPage.offlineSwitch.checked = false; charEditorPage.offlineContainer.innerHTML = '';
-            charEditorPage.groupSelect.innerHTML = globalState.characterGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+            const page = charEditorPage;
+            page.avatarPreview.style.backgroundImage = ''; page.avatarPreview.dataset.imageData = ''; page.avatarUrlInput.value = ''; page.nameInput.value = ''; page.bioInput.value = ''; page.descTextarea.value = ''; page.onlineSwitch.checked = false; page.onlineContainer.innerHTML = ''; page.offlineSwitch.checked = false; page.offlineContainer.innerHTML = '';
+            page.groupSelect.innerHTML = globalState.characterGroups.map(g => `<option value="${g}">${g}</option>`).join('');
             const wbOptions = globalState.worldBooks.map(book => `<option value="${book.id}">${book.name}</option>`);
-            charEditorPage.worldBookSelect.innerHTML = `<option value="">不绑定</option>` + wbOptions.join('');
+            page.worldBookSelect.innerHTML = `<option value="">不绑定</option>` + wbOptions.join('');
             
             if (charId) {
                 const item = globalState.characters.find(i => i.id === charId); if (!item) return;
-                charEditorPage.title.textContent = `编辑角色`;
-                if (item.avatar) { charEditorPage.avatarPreview.style.backgroundImage = `url(${item.avatar})`; charEditorPage.avatarPreview.dataset.imageData = item.avatar; charEditorPage.avatarUrlInput.value = item.avatar.startsWith('data:image') ? '' : item.avatar; }
-                charEditorPage.nameInput.value = item.name; charEditorPage.groupSelect.value = item.group; charEditorPage.bioInput.value = item.bio; charEditorPage.descTextarea.value = item.description;
-                charEditorPage.worldBookSelect.value = item.boundWorldBookId || "";
+                page.title.textContent = `编辑角色`;
+                if (item.avatar) { page.avatarPreview.style.backgroundImage = `url(${item.avatar})`; page.avatarPreview.dataset.imageData = item.avatar; page.avatarUrlInput.value = item.avatar.startsWith('data:image') ? '' : item.avatar; }
+                page.nameInput.value = item.name; page.groupSelect.value = item.group; page.bioInput.value = item.bio; page.descTextarea.value = item.description;
+                page.worldBookSelect.value = item.boundWorldBookId || "";
 
                 let onlineGreetings = item.onlineOpening?.greetings || (item.onlineOpening?.text ? item.onlineOpening.text.split('\n\n').filter(Boolean) : []);
-                charEditorPage.onlineSwitch.checked = onlineGreetings.length > 0;
-                renderGreetingItems(charEditorPage.onlineContainer, onlineGreetings, '线上');
+                page.onlineSwitch.checked = onlineGreetings.length > 0;
+                renderGreetingItems(page.onlineContainer, onlineGreetings, '线上');
 
                 let offlineGreetings = item.offlineOpening?.greetings || (item.offlineOpening?.text ? item.offlineOpening.text.split('\n\n').filter(Boolean) : []);
-                charEditorPage.offlineSwitch.checked = offlineGreetings.length > 0;
-                renderGreetingItems(charEditorPage.offlineContainer, offlineGreetings, '线下');
+                page.offlineSwitch.checked = offlineGreetings.length > 0;
+                renderGreetingItems(page.offlineContainer, offlineGreetings, '线下');
 
-                charEditorPage.deleteBtnContainer.style.display = 'block';
+                page.deleteBtnContainer.style.display = 'block';
             } else { 
-                charEditorPage.title.textContent = `新建角色`; 
-                charEditorPage.groupSelect.value = '默认分组'; 
-                charEditorPage.worldBookSelect.value = ""; 
-                charEditorPage.deleteBtnContainer.style.display = 'none'; 
+                page.title.textContent = `新建角色`; 
+                page.groupSelect.value = '默认分组'; 
+                page.worldBookSelect.value = ""; 
+                page.deleteBtnContainer.style.display = 'none'; 
             }
-            charEditorPage.onlineContainer.style.display = charEditorPage.onlineSwitch.checked ? 'block' : 'none';
-            charEditorPage.offlineContainer.style.display = charEditorPage.offlineSwitch.checked ? 'block' : 'none';
+            page.onlineContainer.style.display = page.onlineSwitch.checked ? 'block' : 'none';
+            page.offlineContainer.style.display = page.offlineSwitch.checked ? 'block' : 'none';
             showPage('char-editor-page');
+        }
+
+        function openUserPersonaEditor(personaId = null) {
+            globalState.editingUserPersonaId = personaId;
+            const page = userPersonaEditorPage;
+            page.avatarPreview.style.backgroundImage = ''; page.avatarPreview.dataset.imageData = ''; page.avatarUrlInput.value = ''; page.nameInput.value = ''; page.bioInput.value = ''; page.descTextarea.value = ''; page.memoryTextarea.value = '';
+            page.groupSelect.innerHTML = globalState.userPersonaGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+
+            if (personaId) {
+                const item = globalState.userPersonas.find(i => i.id === personaId); if (!item) return;
+                page.title.textContent = '编辑用户人设';
+                if (item.avatar) { page.avatarPreview.style.backgroundImage = `url(${item.avatar})`; page.avatarPreview.dataset.imageData = item.avatar; page.avatarUrlInput.value = item.avatar.startsWith('data:image') ? '' : item.avatar; }
+                page.nameInput.value = item.name;
+                page.groupSelect.value = item.group;
+                page.bioInput.value = item.bio;
+                page.descTextarea.value = item.description;
+                page.memoryTextarea.value = item.memory;
+                page.deleteBtnContainer.style.display = 'block';
+            } else {
+                page.title.textContent = '新建用户人设';
+                page.groupSelect.value = '默认分组';
+                page.deleteBtnContainer.style.display = 'none';
+            }
+            showPage('user-persona-editor-page');
         }
 
         function openCharEditorWithJsonData(data) { 
@@ -1089,18 +1249,56 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 globalState.characters.push(data);
             }
-            renderCharList();
+            renderList();
+            goBack();
+        }
+
+        function saveUserPersona() {
+            const page = userPersonaEditorPage;
+            const data = {
+                id: globalState.editingUserPersonaId || `user_${Date.now()}`,
+                avatar: page.avatarPreview.dataset.imageData || '',
+                name: page.nameInput.value.trim(),
+                group: page.groupSelect.value,
+                bio: page.bioInput.value.trim(),
+                description: page.descTextarea.value.trim(),
+                memory: page.memoryTextarea.value.trim(),
+            };
+            if (!data.name) { alert('名字不能为空哦！'); return; }
+            if (globalState.editingUserPersonaId) {
+                const itemIndex = globalState.userPersonas.findIndex(i => i.id === globalState.editingUserPersonaId);
+                if (itemIndex > -1) globalState.userPersonas[itemIndex] = data;
+            } else {
+                globalState.userPersonas.push(data);
+            }
+            renderList();
             goBack();
         }
 
         function renumberGreetings(container, type) { container.querySelectorAll('.greeting-item').forEach((item, index) => { const titleSpan = item.querySelector('.summary-title'); if (titleSpan) titleSpan.textContent = `${type}开场白 #${index + 1}`; }); }
         
         function init() {
-            document.getElementById('dock-icon-4-trigger').addEventListener('click', () => { renderCharList(); showPage('char-list-page'); });
+            document.getElementById('dock-icon-4-trigger').addEventListener('click', () => { updateCharBookView(); showPage('char-list-page'); });
+            charListPage.title.addEventListener('click', toggleCharBookView);
             charListPage.addButton.addEventListener('click', (e) => { e.stopPropagation(); charListPage.addMenu.classList.toggle('visible'); });
             window.addEventListener('click', () => { if (charListPage.addMenu.classList.contains('visible')) charListPage.addMenu.classList.remove('visible'); });
-            charListPage.addNewItemBtn.addEventListener('click', () => { charListPage.addMenu.classList.remove('visible'); openCharEditor(); });
-            charListPage.manageGroupsBtn.addEventListener('click', () => { charListPage.addMenu.classList.remove('visible'); renderCharGroupManager(); showPage('char-group-manager-page'); });
+            
+            charListPage.addNewItemBtn.addEventListener('click', () => { 
+                charListPage.addMenu.classList.remove('visible');
+                if (globalState.characterBookView === 'char') {
+                    openCharEditor();
+                } else {
+                    openUserPersonaEditor();
+                }
+            });
+
+            charListPage.manageGroupsBtn.addEventListener('click', () => { 
+                charListPage.addMenu.classList.remove('visible');
+                globalState.currentGroupManagementContext = globalState.characterBookView;
+                renderGroupManager(); 
+                showPage('char-group-manager-page'); 
+            });
+
             charListPage.importJsonBtn.addEventListener('click', (e) => { e.preventDefault(); charListPage.addMenu.classList.remove('visible'); charListPage.jsonCharInput.click(); });
             charListPage.jsonCharInput.addEventListener('change', (e) => {
                 const file = e.target.files[0]; if (!file) return;
@@ -1128,10 +1326,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsText(file); e.target.value = '';
             });
-            charListPage.contentArea.addEventListener('click', (e) => { const groupHeader = e.target.closest('.list-group-header'); if (groupHeader) { const groupName = groupHeader.dataset.groupName; const index = globalState.characterCollapsedGroups.indexOf(groupName); if (index > -1) globalState.characterCollapsedGroups.splice(index, 1); else globalState.characterCollapsedGroups.push(groupName); renderCharList(); return; } const card = e.target.closest('.character-card'); if (card) openCharEditor(card.dataset.id); });
+
+            charListPage.contentArea.addEventListener('click', (e) => {
+                const groupHeader = e.target.closest('.list-group-header');
+                if (groupHeader) {
+                    const groupName = groupHeader.dataset.groupName;
+                    if (globalState.characterBookView === 'char') {
+                        const index = globalState.characterCollapsedGroups.indexOf(groupName);
+                        if (index > -1) {
+                            globalState.characterCollapsedGroups.splice(index, 1);
+                        } else {
+                            globalState.characterCollapsedGroups.push(groupName);
+                        }
+                        renderList();
+                    }
+                    return;
+                }
+                const card = e.target.closest('.character-card');
+                if (card) {
+                    if (globalState.characterBookView === 'char') {
+                        openCharEditor(card.dataset.id);
+                    } else {
+                        openUserPersonaEditor(card.dataset.id);
+                    }
+                }
+            });
+
+            // 角色编辑器事件
             charEditorPage.page.addEventListener('click', (e) => { const deleteBtn = e.target.closest('.delete-greeting-btn'); if (deleteBtn) { e.preventDefault(); const item = deleteBtn.closest('.greeting-item'); if (item) { const container = item.parentElement; const type = container.id.includes('online') ? '线上' : '线下'; item.remove(); renumberGreetings(container, type); } } });
             charEditorPage.saveButton.addEventListener('click', saveCharacter);
-            charEditorPage.deleteButton.addEventListener('click', async () => { if (!globalState.editingCharId) return; const result = await showPrompt({ title: '删除确认', html: `<p>确定要删除角色 “${charEditorPage.nameInput.value}” 吗？<br>此操作不可撤销。</p>`, confirmText: '删除', confirmClass: 'btn-danger' }); if (result) { globalState.characters = globalState.characters.filter(i => i.id !== globalState.editingCharId); renderCharList(); goBack(); } });
+            charEditorPage.deleteButton.addEventListener('click', async () => { if (!globalState.editingCharId) return; const result = await showPrompt({ title: '删除确认', html: `<p>确定要删除角色 “${charEditorPage.nameInput.value}” 吗？<br>此操作不可撤销。</p>`, confirmText: '删除', confirmClass: 'btn-danger' }); if (result) { globalState.characters = globalState.characters.filter(i => i.id !== globalState.editingCharId); renderList(); goBack(); } });
             charEditorPage.avatarPreview.addEventListener('click', () => charEditorPage.avatarFileInput.click());
             charEditorPage.avatarUrlInput.addEventListener('blur', (e) => { const url = e.target.value.trim(); if (url) { charEditorPage.avatarPreview.style.backgroundImage = `url(${url})`; charEditorPage.avatarPreview.dataset.imageData = url; } });
             charEditorPage.avatarFileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (event) => { const dataUri = event.target.result; charEditorPage.avatarPreview.style.backgroundImage = `url(${dataUri})`; charEditorPage.avatarPreview.dataset.imageData = dataUri; charEditorPage.avatarUrlInput.value = ''; }; reader.readAsDataURL(file); } });
@@ -1139,9 +1363,68 @@ document.addEventListener('DOMContentLoaded', () => {
             charEditorPage.offlineSwitch.addEventListener('change', (e) => { charEditorPage.offlineContainer.style.display = e.target.checked ? 'block' : 'none'; });
             charEditorPage.addOnlineGreetingBtn.addEventListener('click', () => { if (!charEditorPage.onlineSwitch.checked) { charEditorPage.onlineSwitch.checked = true; charEditorPage.onlineContainer.style.display = 'block'; } addGreetingItem(charEditorPage.onlineContainer, '线上'); });
             charEditorPage.addOfflineGreetingBtn.addEventListener('click', () => { if (!charEditorPage.offlineSwitch.checked) { charEditorPage.offlineSwitch.checked = true; charEditorPage.offlineContainer.style.display = 'block'; } addGreetingItem(charEditorPage.offlineContainer, '线下'); });
-            charGroupManagerPage.page.addEventListener('click', async (e) => { const target = e.target; if(target.closest('#char-add-new-group-btn')) { const { name } = await showPrompt({title: "新建分组", html: `<div class="form-group"><label for="prompt-name">分组名称</label><input type="text" id="prompt-name" class="input-field" placeholder="请输入..."></div>`}) || {}; if (name && !globalState.characterGroups.includes(name)) { globalState.characterGroups.push(name); renderCharGroupManager(); } else if (name) { alert('分组名称已存在！'); } } else if(target.closest('.delete-group-btn')) { const groupName = target.closest('.delete-group-btn').dataset.groupName; const result = await showPrompt({ title: '删除分组', html: `<p>确定要删除分组 “${groupName}” 吗？<br>该分组下的所有角色将被移至“默认分组”。</p>`, confirmText: '删除', confirmClass: 'btn-danger' }); if (result) { globalState.characters.forEach(item => { if (item.group === groupName) item.group = '默认分组'; }); globalState.characterGroups = globalState.characterGroups.filter(g => g !== groupName); renderCharGroupManager(); } } else if(target.closest('.group-manage-header h3.clickable')) { const oldName = target.closest('.group-manage-header h3.clickable').dataset.groupName; const result = await showPrompt({ title: `重命名分组`, html: `<div class="form-group"><label for="prompt-name">新名称</label><input type="text" id="prompt-name" class="input-field" value="${oldName}"></div>` }); if (result && result.name && oldName !== result.name) { if (!globalState.characterGroups.includes(result.name)) { const index = globalState.characterGroups.indexOf(oldName); if (index > -1) globalState.characterGroups[index] = result.name; globalState.characters.forEach(item => { if (item.group === oldName) item.group = result.name; }); renderCharGroupManager(); } else { alert('分组名称已存在！'); } } } else if(target.closest('.group-manage-content-item[data-id]')) { const itemId = target.closest('.group-manage-content-item[data-id]').dataset.id; const item = globalState.characters.find(i => i.id === itemId); if (!item) return; const result = await showPrompt({ title: `移动 “${item.name}”`, html: `<div class="form-group"><label for="prompt-group">选择新分组</label><select id="prompt-group" class="input-field">${globalState.characterGroups.map(g => `<option value="${g}" ${g === item.group ? 'selected' : ''}>${g}</option>`).join('')}</select></div>` }); if (result && result.group) { item.group = result.group; renderCharGroupManager(); } } });
+
+            // 用户人设编辑器事件
+            userPersonaEditorPage.saveButton.addEventListener('click', saveUserPersona);
+            userPersonaEditorPage.deleteButton.addEventListener('click', async () => { if (!globalState.editingUserPersonaId) return; const result = await showPrompt({ title: '删除确认', html: `<p>确定要删除人设 “${userPersonaEditorPage.nameInput.value}” 吗？<br>此操作不可撤销。</p>`, confirmText: '删除', confirmClass: 'btn-danger' }); if (result) { globalState.userPersonas = globalState.userPersonas.filter(i => i.id !== globalState.editingUserPersonaId); renderList(); goBack(); } });
+            userPersonaEditorPage.avatarPreview.addEventListener('click', () => userPersonaEditorPage.avatarFileInput.click());
+            userPersonaEditorPage.avatarUrlInput.addEventListener('blur', (e) => { const url = e.target.value.trim(); if (url) { userPersonaEditorPage.avatarPreview.style.backgroundImage = `url(${url})`; userPersonaEditorPage.avatarPreview.dataset.imageData = url; } });
+            userPersonaEditorPage.avatarFileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (event) => { const dataUri = event.target.result; userPersonaEditorPage.avatarPreview.style.backgroundImage = `url(${dataUri})`; userPersonaEditorPage.avatarPreview.dataset.imageData = dataUri; userPersonaEditorPage.avatarUrlInput.value = ''; }; reader.readAsDataURL(file); } });
+
+            // 分组管理事件
+            groupManagerPage.page.addEventListener('click', async (e) => {
+                const target = e.target;
+                const context = globalState.currentGroupManagementContext;
+                const items = context === 'char' ? globalState.characters : globalState.userPersonas;
+                let groups = context === 'char' ? globalState.characterGroups : globalState.userPersonaGroups;
+                const defaultGroup = '默认分组';
+
+                if(target.closest('#add-new-group-btn')) {
+                    const { name } = await showPrompt({title: "新建分组", html: `<div class="form-group"><label for="prompt-name">分组名称</label><input type="text" id="prompt-name" class="input-field" placeholder="请输入..."></div>`}) || {};
+                    if (name && !groups.includes(name)) {
+                        groups.push(name);
+                        renderGroupManager();
+                    } else if (name) {
+                        alert('分组名称已存在！');
+                    }
+                } else if(target.closest('.delete-group-btn')) {
+                    const groupName = target.closest('.delete-group-btn').dataset.groupName;
+                    const result = await showPrompt({ title: '删除分组', html: `<p>确定要删除分组 “${groupName}” 吗？<br>该分组下的所有项目将被移至“${defaultGroup}”。</p>`, confirmText: '删除', confirmClass: 'btn-danger' });
+                    if (result) {
+                        items.forEach(item => { if (item.group === groupName) item.group = defaultGroup; });
+                        if (context === 'char') {
+                            globalState.characterGroups = groups.filter(g => g !== groupName);
+                        } else {
+                            globalState.userPersonaGroups = groups.filter(g => g !== groupName);
+                        }
+                        renderGroupManager();
+                    }
+                } else if(target.closest('.group-manage-header h3.clickable')) {
+                    const oldName = target.closest('.group-manage-header h3.clickable').dataset.groupName;
+                    const { name: newName } = await showPrompt({ title: `重命名分组`, html: `<div class="form-group"><label for="prompt-name">新名称</label><input type="text" id="prompt-name" class="input-field" value="${oldName}"></div>` }) || {};
+                    if (newName && oldName !== newName) {
+                        if (!groups.includes(newName)) {
+                            const index = groups.indexOf(oldName);
+                            if (index > -1) groups[index] = newName;
+                            items.forEach(item => { if (item.group === oldName) item.group = newName; });
+                            renderGroupManager();
+                        } else {
+                            alert('分组名称已存在！');
+                        }
+                    }
+                } else if(target.closest('.group-manage-content-item[data-id]')) {
+                    const itemId = target.closest('.group-manage-content-item[data-id]').dataset.id;
+                    const item = items.find(i => i.id === itemId);
+                    if (!item) return;
+                    const result = await showPrompt({ title: `移动 “${item.name}”`, html: `<div class="form-group"><label for="prompt-group">选择新分组</label><select id="prompt-group" class="input-field">${groups.map(g => `<option value="${g}" ${g === item.group ? 'selected' : ''}>${g}</option>`).join('')}</select></div>` });
+                    if (result && result.group) {
+                        item.group = result.group;
+                        renderGroupManager();
+                    }
+                }
+            });
         }
-        return { init, renderCharList };
+        return { init };
     })();
 
     // --- 7. 世界书APP逻辑 ---
@@ -1174,11 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteContainer.style.display = 'none';
             } else {
                 const book = globalState.worldBooks.find(b => b.id === bookId);
-                if (!book) {
-                    console.error('World book not found:', bookId);
-                    goBack(); // 如果找不到，直接返回，防止崩溃
-                    return;
-                }
+                if (!book) { console.error('World book not found:', bookId); goBack(); return; }
                 title.textContent = "编辑世界书";
                 nameInput.value = book.name;
                 descTextarea.value = book.description;
